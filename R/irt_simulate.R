@@ -536,8 +536,9 @@ fit_model <- function(data, model, se = TRUE) {
 #' @param iteration Integer iteration number.
 #' @param sample_size Integer sample size.
 #' @param true_params Data frame (used for schema).
-#' @param true_params_lookup Named character vector mapping "<item>_<param>"
-#'   to true_value (for O(1) lookup instead of repeated vector scans).
+#' @param true_params_lookup Named character vector mapping keys of the form
+#'   `"item_param"` (e.g., `"Item_1_a"`) to `true_value` (for O(1) lookup
+#'   instead of repeated vector scans).
 #' @param se Logical. Extract standard errors and CIs? Default `TRUE`.
 #' @return Data frame with item_results columns.
 #' @keywords internal

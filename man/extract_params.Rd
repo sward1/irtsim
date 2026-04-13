@@ -29,8 +29,9 @@ model that was fitted, which may differ from design$model).}
 
 \item{true_params}{Data frame (used for schema).}
 
-\item{true_params_lookup}{Named character vector mapping "\if{html}{\out{<item>}}_\if{html}{\out{<param>}}"
-to true_value (for O(1) lookup instead of repeated vector scans).}
+\item{true_params_lookup}{Named character vector mapping keys of the form
+\code{"item_param"} (e.g., \code{"Item_1_a"}) to \code{true_value} (for O(1) lookup
+instead of repeated vector scans).}
 
 \item{se}{Logical. Extract standard errors and CIs? Default \code{TRUE}.}
 }
