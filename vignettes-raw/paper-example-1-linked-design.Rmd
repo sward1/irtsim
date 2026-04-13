@@ -1,0 +1,218 @@
+---
+title: "Paper Example 1: Linked-Test Design with 1PL Estimation"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Paper Example 1: Linked-Test Design with 1PL Estimation}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width  = 7,
+  fig.height = 5
+)
+```
+
+## Purpose
+
+This vignette is a **faithful reproduction** of Example 1 from
+Schroeders and Gnambs (2025), *"Sample Size Planning for Item Response
+Models: A Tutorial for the Quantitative Researcher"* and its companion
+R code at
+<https://ulrich-schroeders.github.io/IRT-sample-size/example_1.html>.
+The goal is to let irtsim users compare its Monte Carlo output directly
+against the published reference.
+
+The paper's Example 1 asks a classic question: **how many examinees are
+needed to recover item difficulty parameters in a linked, two-form
+achievement test fit with a Rasch (1PL) model?**
+
+```{r load, include = FALSE}
+library(irtsim)
+library(ggplot2)
+
+ex1_path <- if (file.exists("../inst/extdata/vignette_ex1_paper.rds")) {
+  "../inst/extdata/vignette_ex1_paper.rds"
+} else {
+  system.file("extdata", "vignette_ex1_paper.rds", package = "irtsim")
+}
+
+if (!nzchar(ex1_path)) {
+  stop(
+    "Precomputed results not found. ",
+    "Run data-raw/precompute_vignettes.R before building this vignette."
+  )
+}
+
+ex1 <- readRDS(ex1_path)
+res <- ex1$results
+```
+
+## Design, from the paper
+
+| Decision | Paper value | irtsim mapping |
+|---|---|---|
+| Estimation model | 1PL (Rasch) | `estimation_model = "1PL"` |
+| Number of items | 30 | `n_items = 30` |
+| Item discriminations (generation) | `rnorm(30, 1, 0.1)` | `item_params$a` |
+| Item difficulties | `seq(-2, 2, length.out = 30)` | `item_params$b` |
+| Two forms, common block items 13–18 | 2 × 30 linking matrix | `missing = "linking"` |
+| Monte Carlo iterations | 438 | `iterations = 438` |
+| Sample sizes | `seq(100, 600, 50)` | `sample_sizes` |
+| Performance criterion | MSE, threshold 0.05 | `summary(res)$item_summary$mse` |
+
+Note on the data-generating model: the paper uses a near-constant
+discrimination (mean 1, sd 0.1) and fits a Rasch model. irtsim's 1PL
+generation fixes `a = 1` exactly, so to match the paper we generate
+under a 2PL with `a ~ rnorm(30, 1, 0.1)` and set `estimation_model =
+"1PL"`. The estimation model is the one the paper targets; the generation
+model is a faithful implementation of the paper's `a` draws.
+
+## Reproducing the study
+
+The code below mirrors the paper. It is shown for reference; the actual
+simulation is precomputed and cached in
+`inst/extdata/vignette_ex1_paper.rds` to keep vignette build time low.
+
+```{r code, eval = FALSE}
+library(irtsim)
+
+set.seed(2024)
+n_items <- 30L
+
+# Item parameters exactly as in the paper
+a_vals <- rnorm(n_items, mean = 1, sd = 0.1)
+b_vals <- seq(-2, 2, length.out = n_items)
+
+# Linking matrix: form 1 = odd items + common block 13-18,
+#                 form 2 = even items + common block 13-18
+linking_matrix <- matrix(0L, nrow = 2L, ncol = n_items)
+linking_matrix[1L, sort(unique(c(seq(1L, n_items, 2L), 13:18)))] <- 1L
+linking_matrix[2L, sort(unique(c(seq(2L, n_items, 2L), 13:18)))] <- 1L
+
+design <- irt_design(
+  model       = "2PL",
+  n_items     = n_items,
+  item_params = list(a = a_vals, b = b_vals),
+  theta_dist  = "normal"
+)
+
+study <- irt_study(
+  design,
+  sample_sizes     = seq(100L, 600L, by = 50L),
+  missing          = "linking",
+  test_design      = list(linking_matrix = linking_matrix),
+  estimation_model = "1PL"
+)
+
+res <- irt_simulate(
+  study,
+  iterations = 438L,
+  seed       = 2024L,
+  parallel   = TRUE
+)
+```
+
+## Summary: MSE by sample size
+
+We summarize the recovered item-difficulty MSE and pair it with its
+Monte Carlo standard error (MCSE), following Morris et al. (2019).
+
+```{r summary}
+s <- summary(res, criterion = c("mse", "mcse_mse"), param = "b")
+head(s$item_summary, 10)
+```
+
+The paper plots the MSE trajectory for two representative items: **item
+1** (difficulty ≈ −2, extreme) and **item 15** (difficulty ≈ 0,
+central). We do the same.
+
+```{r plot}
+item_df <- s$item_summary
+focal <- subset(item_df, item %in% c(1L, 15L))
+focal$item_label <- factor(
+  focal$item,
+  levels = c(1L, 15L),
+  labels = c("Item 1 (b \u2248 -2)", "Item 15 (b \u2248 0)")
+)
+
+ggplot(focal, aes(x = sample_size, y = mse, colour = item_label)) +
+  geom_hline(yintercept = 0.05, linetype = "dashed", colour = "grey40") +
+  geom_line(linewidth = 0.8) +
+  geom_point(size = 2) +
+  geom_errorbar(
+    aes(
+      ymin = pmax(mse - 1.96 * mcse_mse, 0),
+      ymax = mse + 1.96 * mcse_mse
+    ),
+    width = 15
+  ) +
+  scale_x_continuous(breaks = seq(100, 600, 100)) +
+  labs(
+    title    = "Example 1: MSE of b-parameter vs. sample size",
+    subtitle = "Dashed line = paper's 0.05 MSE threshold",
+    x        = "Sample size (N)",
+    y        = "MSE(b)",
+    colour   = NULL
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Recommended N
+
+Using irtsim's built-in `recommended_n()` helper we can extract the
+smallest N that meets the paper's MSE ≤ 0.05 threshold for each item.
+The paper reports sample-size requirements in the same sense.
+
+```{r rec_n}
+sim_summary <- summary(res, criterion = "mse", param = "b")
+rec <- recommended_n(sim_summary, criterion = "mse", threshold = 0.05, param = "b")
+head(rec, 10)
+```
+
+## Comparison notes — paper vs. irtsim
+
+**Should reproduce (within MC noise):**
+
+- MSE trajectory shape for central items (e.g., item 15) is tightest.
+- Extreme items (item 1, item 30) may not reach the 0.05 threshold
+  within the tested sample-size range (N ≤ 600). An `NA` in the
+  `recommended_n` column means the criterion was never met — this is
+  informative, not an error.
+- Required N to meet MSE ≤ 0.05 for the central block (items 13–18) is
+  substantially smaller than for the tails.
+
+**Expected small numerical differences:**
+
+1. **Form assignment.** The paper uses random per-examinee form
+   assignment (`sample(c(1, 2), n, replace = TRUE)`). irtsim's
+   `apply_missing_structured()` uses deterministic round-robin
+   assignment. At N ≥ 100 the induced difference in per-form sample
+   sizes is small (< 1 examinee gap) and does not materially shift the
+   MSE trajectories.
+2. **RNG dispatch.** irtsim runs in parallel mode with
+   `future.seed = TRUE`, which uses L'Ecuyer-CMRG substreams. The paper
+   uses the session default Mersenne-Twister. Both are valid Monte
+   Carlo streams; the specific numbers differ. Only trajectory shape is
+   expected to match, not bit-for-bit numerical equality.
+3. **Iterations.** We use the paper's 438 iterations as-is. That value
+   reflects a Burton (2003) precision target that irtsim exposes via
+   [`irt_iterations()`]; users can recompute it if they want a
+   different MC precision.
+
+## References
+
+Burton, A., Altman, D. G., Royston, P., & Holder, R. L. (2006). The
+design of simulation studies in medical statistics. *Statistics in
+Medicine*, 25, 4279–4292. <https://doi.org/10.1002/sim.2673>
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation
+studies to evaluate statistical methods. *Statistics in Medicine*, 38,
+2074–2102. <https://doi.org/10.1002/sim.8086>
+
+Schroeders, U., & Gnambs, T. (2025). Sample size planning for item
+response models: A tutorial for the quantitative researcher.
+Companion code: <https://ulrich-schroeders.github.io/IRT-sample-size/>.

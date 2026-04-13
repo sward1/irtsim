@@ -1,0 +1,57 @@
+url: https://sward1.github.io/irtsim/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left:  [intro, reference, articles]
+    right: [search, github]
+  components:
+    github:
+      icon: fa-github
+      href: https://github.com/sward1/irtsim
+
+reference:
+  - title: "Core Pipeline"
+    desc: >
+      The three-step workflow: specify a design, add study conditions,
+      and run the simulation.
+    contents:
+      - irt_design
+      - irt_study
+      - irt_simulate
+
+  - title: "Results Analysis"
+    desc: >
+      Summarize, visualize, and extract recommendations from simulation
+      results.
+    contents:
+      - summary.irt_results
+      - plot.irt_results
+      - plot.summary_irt_results
+      - recommended_n
+
+  - title: "Utilities"
+    desc: "Helper functions for parameter generation and planning."
+    contents:
+      - irt_params_2pl
+      - irt_params_grm
+      - irt_iterations
+
+  - title: "Print Methods"
+    contents:
+      - print.irt_design
+      - print.irt_study
+      - print.irt_results
+      - print.summary_irt_results
+
+articles:
+  - title: "Examples"
+    navbar: "Examples"
+    contents:
+      - paper-example-1-linked-design
+      - paper-example-1b-misspecification
+      - paper-example-2-mcar
+      - paper-example-3-grm
+      - paper-reproduction-gaps

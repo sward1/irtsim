@@ -1,0 +1,250 @@
+---
+title: "Paper Example 1b: Model misspecification (generate 2PL, fit 1PL)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Paper Example 1b: Model misspecification (generate 2PL, fit 1PL)}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+```{r load-results, include = FALSE}
+library(irtsim)
+library(ggplot2)
+
+results_path <- if (file.exists("../inst/extdata/vignette_ex1_results.rds")) {
+  "../inst/extdata/vignette_ex1_results.rds"
+} else {
+  system.file("extdata", "vignette_ex1_results.rds", package = "irtsim")
+}
+if (!file.exists(results_path)) {
+  stop("Precomputed results not found. ",
+       "Run data-raw/precompute_vignettes.R before building this vignette.")
+}
+
+results_list <- readRDS(results_path)
+res_correct <- results_list$correct
+res_misspec <- results_list$misspec
+```
+
+This vignette extends the linked-design example from Schroeders and
+Gnambs (2025) by asking: **what happens to item difficulty recovery
+when the fitted model is misspecified?** Data are generated under a
+2PL with substantially variable discriminations, then fitted under
+both the correct 2PL and a misspecified 1PL (Rasch). For the faithful
+paper reproduction, see `vignette("paper-example-1-linked-design")`.
+
+## Background
+
+The Rasch model assumes equal discrimination across items. When this
+assumption is violated, item difficulty estimates absorb the
+discrimination heterogeneity. The misspecification creates a
+bias-variance tradeoff: the 1PL estimates fewer parameters per item
+(no `a`), so each `b` estimate has lower sampling variance — but the
+constraint introduces persistent bias that does not shrink with N.
+
+We generate a 20-item test with discriminations drawn from a lognormal
+distribution with substantial variability (`a_mean = 0.2`,
+`a_sd = 0.5` on the log scale), producing a realistic range of
+discriminations (roughly 0.5 to 2.5).
+
+## Study Design
+
+```{r design, eval = FALSE}
+library(irtsim)
+
+set.seed(2024)
+n_items <- 20
+
+params <- irt_params_2pl(
+  n_items = n_items, a_dist = "lnorm",
+  a_mean = 0.2, a_sd = 0.5,
+  b_mean = 0, b_sd = 1, seed = 2024
+)
+
+design <- irt_design(
+  model = "2PL", n_items = n_items,
+  item_params = params, theta_dist = "normal"
+)
+
+sample_sizes <- seq(200, 1000, by = 200)
+
+study_correct <- irt_study(design, sample_sizes = sample_sizes)
+study_misspec <- irt_study(design, sample_sizes = sample_sizes,
+                           estimation_model = "1PL")
+
+res_correct <- irt_simulate(study_correct, iterations = 500,
+                            seed = 2024, parallel = TRUE)
+res_misspec <- irt_simulate(study_misspec, iterations = 500,
+                            seed = 2024, parallel = TRUE)
+```
+
+> **Note on reproducibility.** Precomputed with `parallel = TRUE`.
+> See `?irt_simulate` for the serial/parallel reproducibility contract.
+
+## Proportion of Items Meeting RMSE Threshold
+
+The key question is not "what is the max recommended N" but "at each
+sample size, what fraction of items have acceptable RMSE?" This
+captures both items that converge quickly and items that never converge.
+
+```{r helper-fn}
+#' Compute proportion of items meeting a criterion threshold at each N
+prop_meeting <- function(res, criterion, threshold, param = NULL) {
+  s <- summary(res, criterion = criterion, param = param)
+  df <- s$item_summary
+  cfg <- irtsim:::get_criterion_config(criterion)
+  vals <- df[[criterion]]
+  if (cfg$use_abs) vals <- abs(vals)
+  if (cfg$direction == "higher_is_better") {
+    df$meets <- !is.na(vals) & vals >= threshold
+  } else {
+    df$meets <- !is.na(vals) & vals <= threshold
+  }
+  agg <- aggregate(meets ~ sample_size, data = df,
+                   FUN = function(x) mean(x))
+  names(agg)[2] <- "prop_meeting"
+  agg
+}
+```
+
+```{r plot-prop-rmse, fig.height = 5}
+prop_correct <- prop_meeting(res_correct, "rmse", 0.20, param = "b")
+prop_correct$model <- "Correct (2PL \u2192 2PL)"
+
+prop_misspec <- prop_meeting(res_misspec, "rmse", 0.20, param = "b")
+prop_misspec$model <- "Misspecified (2PL \u2192 1PL)"
+
+prop_df <- rbind(prop_correct, prop_misspec)
+
+ggplot(prop_df, aes(x = sample_size, y = prop_meeting, colour = model)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2.5) +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  labs(
+    title = "Proportion of Items with RMSE(b) \u2264 0.20",
+    x = "Sample size (N)", y = "Proportion meeting threshold",
+    colour = NULL
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Aggregate RMSE Trajectory
+
+The ribbon shows the range (min to max) across items; the line is the
+mean.
+
+```{r plot-rmse-aggregate, fig.height = 5}
+make_agg <- function(res, param, label) {
+  s <- summary(res, criterion = "rmse", param = param)
+  agg <- aggregate(rmse ~ sample_size, data = s$item_summary,
+    FUN = function(x) c(mean = mean(x), min = min(x), max = max(x)))
+  agg <- do.call(data.frame, agg)
+  names(agg) <- c("sample_size", "mean_rmse", "min_rmse", "max_rmse")
+  agg$model <- label
+  agg
+}
+
+agg <- rbind(
+  make_agg(res_correct, "b", "Correct (2PL \u2192 2PL)"),
+  make_agg(res_misspec, "b", "Misspecified (2PL \u2192 1PL)")
+)
+
+ggplot(agg, aes(x = sample_size, colour = model, fill = model)) +
+  geom_ribbon(aes(ymin = min_rmse, ymax = max_rmse), alpha = 0.15, colour = NA) +
+  geom_line(aes(y = mean_rmse), linewidth = 0.9) +
+  geom_point(aes(y = mean_rmse), size = 2) +
+  geom_hline(yintercept = 0.20, linetype = "dashed", colour = "grey40") +
+  labs(
+    title = "RMSE(b) — Correct vs. Misspecified",
+    subtitle = "Line = mean across items; ribbon = min\u2013max range",
+    x = "Sample size (N)", y = "RMSE(b)", colour = NULL, fill = NULL
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Bias — The Persistent Cost
+
+RMSE alone can hide a critical difference between models:
+misspecification introduces **persistent bias** that does not shrink
+with N. This is the Rasch model's fundamental limitation when
+discriminations are unequal — the bias is structural, not sampling
+error.
+
+```{r plot-bias-aggregate, fig.height = 5}
+make_agg_bias <- function(res, param, label) {
+  s <- summary(res, criterion = "bias", param = param)
+  s$item_summary$abs_bias <- abs(s$item_summary$bias)
+  agg <- aggregate(abs_bias ~ sample_size, data = s$item_summary,
+    FUN = function(x) c(mean = mean(x), min = min(x), max = max(x)))
+  agg <- do.call(data.frame, agg)
+  names(agg) <- c("sample_size", "mean_absbias", "min_absbias", "max_absbias")
+  agg$model <- label
+  agg
+}
+
+agg_b <- rbind(
+  make_agg_bias(res_correct, "b", "Correct (2PL \u2192 2PL)"),
+  make_agg_bias(res_misspec, "b", "Misspecified (2PL \u2192 1PL)")
+)
+
+ggplot(agg_b, aes(x = sample_size, colour = model, fill = model)) +
+  geom_ribbon(aes(ymin = min_absbias, ymax = max_absbias), alpha = 0.15, colour = NA) +
+  geom_line(aes(y = mean_absbias), linewidth = 0.9) +
+  geom_point(aes(y = mean_absbias), size = 2) +
+  labs(
+    title = "|Bias(b)| — Correct vs. Misspecified",
+    subtitle = "Bias under correct specification shrinks with N; under misspecification it persists",
+    x = "Sample size (N)", y = "|Bias(b)|", colour = NULL, fill = NULL
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Summary
+
+```{r summary-table}
+rec_correct <- recommended_n(summary(res_correct, param = "b"),
+                             criterion = "rmse", threshold = 0.20, param = "b")
+rec_misspec <- recommended_n(summary(res_misspec, param = "b"),
+                             criterion = "rmse", threshold = 0.20, param = "b")
+
+n_items <- nrow(rec_correct)
+n_na_correct <- sum(is.na(rec_correct$recommended_n))
+n_na_misspec <- sum(is.na(rec_misspec$recommended_n))
+
+cat("Items tested:", n_items, "\n")
+cat("Items reaching RMSE(b) <= 0.20:\n")
+cat("  Correct:", n_items - n_na_correct, "of", n_items, "\n")
+cat("  Misspecified:", n_items - n_na_misspec, "of", n_items, "\n")
+```
+
+The misspecification story is not a simple "you need more N." It is a
+bias-variance tradeoff:
+
+- The 1PL estimates fewer parameters, so its b estimates have **lower
+  sampling variance** and can reach a given RMSE threshold at smaller N
+  — for items where the true discrimination is close to the constraint.
+- But items with extreme discriminations acquire **persistent bias** that
+  no amount of additional data can eliminate, so they **never** reach
+  the RMSE threshold.
+- The correct 2PL avoids bias but has higher variance per item, so it
+  needs larger N — but eventually all items converge.
+
+The proportion-meeting-threshold plot captures both sides of this
+tradeoff in a way that a single `max(recommended_n)` cannot.
+
+## References
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation studies to
+evaluate statistical methods. *Statistics in Medicine*, 38(11), 2074–2102.
+
+Schroeders, U., & Gnambs, T. (2025). Sample-size planning in item response theory:
+A tutorial. *Advances in Methods and Practices in Psychological Science*, 8(1).

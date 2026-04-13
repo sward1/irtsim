@@ -1,0 +1,284 @@
+---
+title: "Paper Example 3: GRM parameter recovery for a clinical scale"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Paper Example 3: GRM parameter recovery for a clinical scale}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 7,
+  fig.height = 5
+)
+```
+
+```{r load-results, include = FALSE}
+library(irtsim)
+library(ggplot2)
+
+# Load precomputed results
+results_path <- if (file.exists("../inst/extdata/vignette_ex3_results.rds")) {
+  "../inst/extdata/vignette_ex3_results.rds"
+} else {
+  system.file("extdata", "vignette_ex3_results.rds", package = "irtsim")
+}
+
+if (!file.exists(results_path)) {
+  stop(
+    "Precomputed results not found. ",
+    "Run data-raw/precompute_vignettes.R before building this vignette."
+  )
+}
+
+results <- readRDS(results_path)
+```
+
+This vignette reproduces the GRM calibration scenario from
+Schroeders and Gnambs (2025) Example 3 as far as irtsim's current API
+permits. The paper's criterion — RMSE of conditional reliability at
+theta = 2.0, derived from `mirt::testinfo()` on the fitted model —
+requires access to the fitted model object, which irtsim does not
+currently expose per iteration. What we reproduce here is the
+**item-level parameter recovery** component (discrimination and
+threshold RMSE, bias, coverage), using a GRM with clinically realistic
+parameters. For the full gap analysis, see
+`vignette("paper-reproduction-gaps")`.
+
+## Background
+
+We calibrate a 9-item polytomous clinical symptom scale with a 4-point
+response format (0–3), using item parameters representative of published
+PHQ-9-like calibrations. The question: **how many respondents are
+needed to recover GRM discrimination and threshold parameters to
+acceptable precision?**
+
+## Step 1: Define the Data-Generating Model
+
+```{r design, eval = FALSE}
+library(irtsim)
+
+n_items <- 9
+n_categories <- 4
+
+a_vals <- c(2.21, 1.72, 1.68, 1.35, 1.19, 1.63, 1.41, 1.26, 1.08)
+
+b_mat <- matrix(c(
+  -0.47,  1.36,  2.86,
+  -0.30,  1.45,  2.96,
+   0.04,  1.76,  3.15,
+  -0.21,  1.53,  3.22,
+   0.26,  2.05,  3.60,
+  -0.02,  1.82,  3.35,
+   0.51,  2.18,  3.70,
+   0.78,  2.45,  3.90,
+   1.05,  2.72,  4.20
+), nrow = n_items, ncol = n_categories - 1, byrow = TRUE)
+
+design <- irt_design(
+  model       = "GRM",
+  n_items     = n_items,
+  item_params = list(a = a_vals, b = b_mat),
+  theta_dist  = "normal"
+)
+```
+
+## Step 2: Define Study Conditions
+
+We test six sample sizes from 200 to 1200, giving finer resolution
+for identifying where each parameter type reaches its precision target.
+
+```{r study, eval = FALSE}
+study <- irt_study(design, sample_sizes = seq(200, 1200, by = 200))
+```
+
+## Step 3: Run the Simulation
+
+```{r simulate, eval = FALSE}
+results <- irt_simulate(study, iterations = 500, seed = 2024, parallel = TRUE)
+```
+
+> **Note on reproducibility.** Precomputed with `parallel = TRUE`.
+> See `?irt_simulate` for the serial/parallel reproducibility contract.
+
+## Proportion of Items Meeting RMSE Threshold
+
+GRM parameters fall into two families: discrimination (`a`) and
+thresholds (`b1`, `b2`, `b3`). At each sample size, what fraction of
+items achieve RMSE ≤ 0.25? This captures the convergence trajectory
+for each parameter type without hiding items that never reach the target.
+
+```{r helper-fn}
+#' Compute proportion of items meeting a criterion threshold at each N
+prop_meeting <- function(res, criterion, threshold, param = NULL) {
+  s <- summary(res, criterion = criterion, param = param)
+  df <- s$item_summary
+  cfg <- irtsim:::get_criterion_config(criterion)
+  vals <- df[[criterion]]
+  if (cfg$use_abs) vals <- abs(vals)
+  if (cfg$direction == "higher_is_better") {
+    df$meets <- !is.na(vals) & vals >= threshold
+  } else {
+    df$meets <- !is.na(vals) & vals <= threshold
+  }
+  agg <- aggregate(meets ~ sample_size, data = df,
+                   FUN = function(x) mean(x))
+  names(agg)[2] <- "prop_meeting"
+  agg
+}
+```
+
+```{r plot-prop-rmse, fig.height = 5}
+params_to_check <- c("a", "b1", "b2", "b3")
+labels <- c("a (discrimination)", "b1 (mild threshold)",
+            "b2 (moderate threshold)", "b3 (severe threshold)")
+
+prop_list <- lapply(seq_along(params_to_check), function(i) {
+  df <- prop_meeting(results, "rmse", 0.25, param = params_to_check[i])
+  df$param <- labels[i]
+  df
+})
+prop_df <- do.call(rbind, prop_list)
+
+ggplot(prop_df, aes(x = sample_size, y = prop_meeting, colour = param)) +
+  geom_line(linewidth = 0.9) +
+  geom_point(size = 2.5) +
+  scale_y_continuous(labels = scales::percent_format(), limits = c(0, 1)) +
+  labs(
+    title = "Proportion of Items with RMSE \u2264 0.25 by Parameter Type",
+    x = "Sample size (N)", y = "Proportion meeting threshold",
+    colour = NULL
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## RMSE by Parameter Type — Aggregate View
+
+The ribbon shows the range (min to max) across items; the line is the
+mean.
+
+```{r plot-rmse-by-param, fig.height = 6}
+make_agg <- function(res, param, label) {
+  s <- summary(res, criterion = "rmse", param = param)
+  agg <- aggregate(
+    rmse ~ sample_size,
+    data = s$item_summary,
+    FUN = function(x) c(mean = mean(x), min = min(x), max = max(x))
+  )
+  agg <- do.call(data.frame, agg)
+  names(agg) <- c("sample_size", "mean_rmse", "min_rmse", "max_rmse")
+  agg$param <- label
+  agg
+}
+
+agg_all <- rbind(
+  make_agg(results, "a",  "a (discrimination)"),
+  make_agg(results, "b1", "b1 (mild threshold)"),
+  make_agg(results, "b2", "b2 (moderate threshold)"),
+  make_agg(results, "b3", "b3 (severe threshold)")
+)
+
+ggplot(agg_all, aes(x = sample_size, colour = param, fill = param)) +
+  geom_ribbon(aes(ymin = min_rmse, ymax = max_rmse), alpha = 0.10, colour = NA) +
+  geom_line(aes(y = mean_rmse), linewidth = 0.9) +
+  geom_point(aes(y = mean_rmse), size = 2) +
+  geom_hline(yintercept = 0.25, linetype = "dashed", colour = "grey40") +
+  labs(
+    title    = "RMSE by Parameter Type \u2014 GRM Clinical Scale",
+    subtitle = "Line = mean across items; ribbon = min\u2013max range; dashed = 0.25 threshold",
+    x = "Sample size (N)", y = "RMSE", colour = NULL, fill = NULL
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Coverage
+
+Nominal 95% coverage can be difficult to achieve at small samples for
+GRM parameters, particularly for extreme thresholds.
+
+```{r plot-coverage, fig.height = 5}
+make_agg_cov <- function(res, param, label) {
+  s <- summary(res, criterion = "coverage", param = param)
+  agg <- aggregate(
+    coverage ~ sample_size,
+    data = s$item_summary,
+    FUN = function(x) c(mean = mean(x), min = min(x), max = max(x))
+  )
+  agg <- do.call(data.frame, agg)
+  names(agg) <- c("sample_size", "mean_cov", "min_cov", "max_cov")
+  agg$param <- label
+  agg
+}
+
+agg_cov <- rbind(
+  make_agg_cov(results, "a",  "a (discrimination)"),
+  make_agg_cov(results, "b1", "b1 (mild)"),
+  make_agg_cov(results, "b3", "b3 (severe)")
+)
+
+ggplot(agg_cov, aes(x = sample_size, colour = param, fill = param)) +
+  geom_ribbon(aes(ymin = min_cov, ymax = max_cov), alpha = 0.10, colour = NA) +
+  geom_line(aes(y = mean_cov), linewidth = 0.9) +
+  geom_point(aes(y = mean_cov), size = 2) +
+  geom_hline(yintercept = 0.95, linetype = "dashed", colour = "grey40") +
+  labs(
+    title    = "Coverage by Parameter Type \u2014 GRM Clinical Scale",
+    subtitle = "Dashed line = nominal 95%; ribbon = min\u2013max item range",
+    x = "Sample size (N)", y = "Coverage", colour = NULL, fill = NULL
+  ) +
+  theme_minimal(base_size = 12)
+```
+
+## Theta Recovery
+
+```{r theta-recovery}
+sim_summary <- summary(results)
+
+cat("=== Theta Recovery ===\n")
+print(sim_summary$theta_summary[, c("sample_size", "mean_cor", "mean_rmse")])
+```
+
+## Summary
+
+```{r summary-table}
+rec_a  <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25, param = "a")
+rec_b1 <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25, param = "b1")
+rec_b3 <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25, param = "b3")
+
+n_items <- nrow(rec_a)
+
+cat("Items tested:", n_items, "\n")
+cat("Items reaching RMSE <= 0.25:\n")
+cat("  a:",  n_items - sum(is.na(rec_a$recommended_n)),  "of", n_items, "\n")
+cat("  b1:", n_items - sum(is.na(rec_b1$recommended_n)), "of", n_items, "\n")
+cat("  b3:", n_items - sum(is.na(rec_b3$recommended_n)), "of", n_items, "\n")
+```
+
+The proportion-meeting-threshold plots reveal a clear hierarchy: mild
+thresholds (b1) are the easiest to estimate, discrimination (a) is
+intermediate, and severe thresholds (b3) require the largest samples.
+This ordering is expected — fewer respondents in a general population
+sample endorse extreme severity levels, reducing the information
+available for estimating those thresholds.
+
+The practical recommendation: clinical scale calibration studies
+should target the sample size needed for the *most difficult*
+parameter to recover, which is typically the most extreme threshold.
+
+For the paper's full Example 3 criterion — RMSE of conditional
+reliability at theta = 2.0 — see `vignette("paper-reproduction-gaps")`
+and Obj 31 in the project backlog.
+
+## References
+
+Choi, S. W., Schalet, B., Cook, K. F., & Cella, D. (2014). Establishing a common
+metric for depressive symptoms. *Psychological Assessment*, 26(2), 513–527.
+
+Morris, T. P., White, I. R., & Crowther, M. J. (2019). Using simulation studies to
+evaluate statistical methods. *Statistics in Medicine*, 38(11), 2074–2102.
+
+Schroeders, U., & Gnambs, T. (2025). Sample-size planning in item response theory:
+A tutorial. *Advances in Methods and Practices in Psychological Science*, 8(1).

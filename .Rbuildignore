@@ -1,0 +1,17 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^LICENSE\.md$
+^README\.Rmd$
+^README\.md$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
+^\.github$
+^codecov\.yml$
+^\.lintr$
+^validate-skeleton\.R$
+^data-raw$
+^doc$
+^Meta$
+^vignettes-raw$
+^cran-comments\.md$

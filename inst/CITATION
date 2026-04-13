@@ -1,0 +1,33 @@
+citHeader("To cite irtsim in publications, please use:")
+
+bibentry(
+  bibtype = "Manual",
+  title   = "irtsim: Monte Carlo Simulation-Based Sample-Size Planning for Item Response Theory",
+  author  = person("Stephen", "Ward"),
+  year    = format(Sys.Date(), "%Y"),
+  note    = paste0("R package version ", meta$Version),
+  url     = "https://github.com/sward1/irtsim",
+  textVersion = paste0(
+    "Ward, S. (", format(Sys.Date(), "%Y"),
+    "). irtsim: Monte Carlo Simulation-Based Sample-Size Planning for Item Response Theory. ",
+    "R package version ", meta$Version, ". ",
+    "https://github.com/sward1/irtsim"
+  )
+)
+
+bibentry(
+  bibtype = "Article",
+  title   = "Sample size planning in item response theory: A 10-decision framework",
+  author  = c(person("Ulrich", "Schroeders"),
+              person("Timo",    "Gnambs")),
+  journal = "Advances in Methods and Practices in Psychological Science",
+  year    = "2025",
+  doi     = "10.1177/25152459251314798",
+  textVersion = paste(
+    "Schroeders, U., & Gnambs, T. (2025).",
+    "Sample size planning in item response theory: A 10-decision framework.",
+    "Advances in Methods and Practices in Psychological Science.",
+    "doi:10.1177/25152459251314798"
+  ),
+  header = "The methodological framework implemented by irtsim is described in:"
+)
