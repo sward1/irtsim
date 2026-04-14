@@ -11,7 +11,7 @@ Description: Provides a pipeline API for Monte Carlo simulation-based sample-siz
     irt_simulate(). Supports 1PL, 2PL, and graded response models with MCAR,
     MAR, booklet, and linking missingness mechanisms. Results include MSE, bias,
     RMSE, SE, and coverage criteria with summary and plot methods.
-License: GPL (>= 3) + file LICENSE
+License: GPL (>= 3)
 URL: https://github.com/sward1/irtsim
 BugReports: https://github.com/sward1/irtsim/issues
 Depends:

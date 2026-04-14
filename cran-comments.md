@@ -1,11 +1,39 @@
-# irtsim 0.1.0 — Initial CRAN submission
+# irtsim 0.1.0 — CRAN resubmission (2026-04-14)
+
+## Response to CRAN reviewer feedback (2026-04-14)
+
+* **License.** Changed `License: GPL (>= 3) + file LICENSE` to
+  `License: GPL (>= 3)` and removed the `LICENSE` file from the
+  package. The prior file only carried a YEAR/COPYRIGHT-HOLDER
+  stub, which is the MIT template and is not appropriate for a
+  GPL-licensed package, as the reviewer noted. The package now
+  uses the standard CRAN GPL-3 license template with no
+  package-specific restrictions.
+
+* **DOIs.** All three DOIs have been re-verified and are correct
+  and resolving:
+    * `10.1002/sim.2673` — Burton, Altman, Royston, & Holder
+      (2006). *The design of simulation studies in medical
+      statistics.* Statistics in Medicine, 25, 4279–4292.
+    * `10.1002/sim.8086` — Morris, White, & Crowther (2019).
+      *Using simulation studies to evaluate statistical methods.*
+      Statistics in Medicine, 38, 2074–2102.
+    * `10.1177/25152459251314798` — Schroeders & Gnambs (2025).
+      *Sample-size planning in item-response theory: A tutorial.*
+      Advances in Methods and Practices in Psychological Science.
+
+  The 403/invalid-DOI warnings from the automated URL checker are
+  publisher-side bot blocks (Wiley onlinelibrary.wiley.com and
+  SAGE journals.sagepub.com both return 403 to HEAD requests from
+  non-browser user agents). Each DOI loads correctly in a browser
+  and in the PubMed / SAGE landing-page records above.
 
 ## Test environments
 
 * Local: macOS (aarch64-apple-darwin20), R 4.2.2 — 0 errors, 0 warnings, 1 note
-* Win-builder: Windows Server, R-devel 4.6.0 beta (2026-04-12 r89872 ucrt) — 0 errors, 0 warnings, 1 note
-* Win-builder: Windows Server, R-release 4.5.3 (2026-03-11 ucrt) — 0 errors, 0 warnings, 1 note
-* Win-builder: Windows Server, R-oldrelease 4.4.3 Patched (2026-02-12 r89426 ucrt) — 0 errors, 0 warnings, 1 note
+* Win-builder: Windows Server, R-devel 4.6.0 beta (2026-04-12 r89874 ucrt), checked 2026-04-14 — 0 errors, 0 warnings, 1 note
+* Win-builder: Windows Server, R-release 4.5.3 (2026-03-11 ucrt), checked 2026-04-14 — 0 errors, 0 warnings, 1 note
+* Win-builder: Windows Server, R-oldrelease 4.4.3 Patched (2026-02-12 r89426 ucrt), checked 2026-04-14 — 0 errors, 0 warnings, 1 note
 
 ## R CMD check results
 
@@ -26,25 +54,6 @@ domain vocabulary, not misspellings:
 * `MSE`, `RMSE` — standard acronyms for "Mean Squared Error" and
   "Root Mean Squared Error" (Morris et al., 2019).
 * `missingness` — standard term in the missing-data literature.
-
-**DOI URLs reported as HTTP 403 Forbidden** — all three DOIs are
-valid and resolve correctly in a browser. Wiley and SAGE DOI resolvers
-are known to return HTTP 403 to automated HEAD requests used by
-`urlchecker` / R CMD check. These are false positives.
-
-* `https://doi.org/10.1002/sim.2673` (Burton et al., 2006, *Statistics
-  in Medicine*, Wiley)
-* `https://doi.org/10.1002/sim.8086` (Morris et al., 2019, *Statistics
-  in Medicine*, Wiley)
-* `https://doi.org/10.1177/25152459251314798` (Schroeders & Gnambs,
-  2025, *Advances in Methods and Practices in Psychological Science*,
-  SAGE)
-
-The same SAGE DOI is additionally reported under "Found the following
-(possibly) invalid DOIs".
-
-**LICENSE-year note** ("YEAR: 2026 / COPYRIGHT HOLDER: Stephen Ward")
-is standard for a GPL (>= 3) + file LICENSE package.
 
 ### Additional ignorable note on the local macOS environment only
 
@@ -84,4 +93,6 @@ dependencies.
   backend on the user and is fully reproducible under Mersenne-Twister
   RNG.
 * The package contains no compiled code.
-* License: GPL (>= 3), inherited from the `mirt` dependency.
+* License: GPL (>= 3), inherited from the `mirt` dependency. No
+  `file LICENSE` component; the package carries no additional
+  GPL restrictions.
