@@ -76,3 +76,4 @@ Initial CRAN release.
 ## Reference
 
 Schroeders, U., and Gnambs, T. (2025). Sample size planning in item response theory: A 10-decision framework. *Advances in Methods and Practices in Psychological Science*. <https://doi.org/10.1177/25152459251314798>
+
