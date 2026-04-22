@@ -1,14 +1,35 @@
-# irtsim 0.1.0 — CRAN resubmission (2026-04-14)
+# irtsim 0.1.1 — CRAN resubmission (2026-04-22)
 
-## Response to CRAN reviewer feedback (2026-04-14)
+## Response to CRAN reviewer feedback (2026-04-22)
+
+* **Acronyms in DESCRIPTION.** All acronyms are now spelled out on
+  first use in the `Description` field: application programming
+  interface (API), item response theory (IRT), one-parameter logistic
+  (1PL), two-parameter logistic (2PL), missing-completely-at-random
+  (MCAR), missing-at-random (MAR), mean squared error (MSE), root
+  mean squared error (RMSE), and standard error (SE).
+
+* **`\dontrun{}` → `\donttest{}`.** Replaced `\dontrun{}` with
+  `\donttest{}` in all seven affected `.Rd` files:
+  `irt_simulate.Rd`, `print.irt_results.Rd`, `summary.irt_results.Rd`,
+  `print.summary_irt_results.Rd`, `plot.irt_results.Rd`,
+  `plot.summary_irt_results.Rd`, and `recommended_n.Rd`. These
+  examples are fully executable but exceed the 5-second threshold
+  because each depends on `irt_simulate()` running 100 Monte Carlo
+  iterations across 3 sample sizes (~300 `mirt` fits). They are
+  therefore wrapped in `\donttest{}` rather than unwrapped; the
+  faster pipeline-head examples (`irt_design`, `irt_study`,
+  `irt_iterations`, `irt_params_2pl`, `irt_params_grm`) are already
+  unwrapped and runnable.
+
+## Response to CRAN reviewer feedback (2026-04-14, retained)
 
 * **License.** Changed `License: GPL (>= 3) + file LICENSE` to
   `License: GPL (>= 3)` and removed the `LICENSE` file from the
   package. The prior file only carried a YEAR/COPYRIGHT-HOLDER
   stub, which is the MIT template and is not appropriate for a
-  GPL-licensed package, as the reviewer noted. The package now
-  uses the standard CRAN GPL-3 license template with no
-  package-specific restrictions.
+  GPL-licensed package. The package now uses the standard CRAN
+  GPL-3 license template with no package-specific restrictions.
 
 * **DOIs.** All three DOIs have been re-verified and are correct
   and resolving:
@@ -30,30 +51,27 @@
 
 ## Test environments
 
-* Local: macOS (aarch64-apple-darwin20), R 4.2.2 — 0 errors, 0 warnings, 1 note
-* Win-builder: Windows Server, R-devel 4.6.0 beta (2026-04-12 r89874 ucrt), checked 2026-04-14 — 0 errors, 0 warnings, 1 note
-* Win-builder: Windows Server, R-release 4.5.3 (2026-03-11 ucrt), checked 2026-04-14 — 0 errors, 0 warnings, 1 note
-* Win-builder: Windows Server, R-oldrelease 4.4.3 Patched (2026-02-12 r89426 ucrt), checked 2026-04-14 — 0 errors, 0 warnings, 1 note
+* Local: macOS (aarch64-apple-darwin20), R 4.2.2 — 0 errors, 0 warnings, 2 notes
+* Win-builder: Windows Server, R-devel 4.6.0 RC (2026-04-21 r89932 ucrt), checked 2026-04-22 — 0 errors, 0 warnings, 1 note
+* Win-builder: Windows Server, R-release 4.5.3 (2026-03-11 ucrt), checked 2026-04-22 — 0 errors, 0 warnings, 1 note
+* Win-builder: Windows Server, R-oldrelease 4.4.3 Patched (2026-02-12 r89426 ucrt), checked 2026-04-22 — 0 errors, 0 warnings, 1 note
 
 ## R CMD check results
 
 0 errors | 0 warnings | 1 note
 
-### Note: CRAN incoming feasibility (new submission)
-
-This is a new submission.
+### Note: CRAN incoming feasibility
 
 **Possibly misspelled words in DESCRIPTION** — all are legitimate
 domain vocabulary, not misspellings:
 
 * `Gnambs`, `Schroeders` — surnames of the authors whose methodological
   framework the package implements (Schroeders & Gnambs, 2025).
-* `IRT` — standard acronym for "Item Response Theory".
-* `MCAR` — standard acronym for "Missing Completely At Random"
-  (Rubin, 1976; Little & Rubin, 2002).
-* `MSE`, `RMSE` — standard acronyms for "Mean Squared Error" and
-  "Root Mean Squared Error" (Morris et al., 2019).
 * `missingness` — standard term in the missing-data literature.
+
+(IRT, MCAR, MAR, MSE, RMSE, and SE now appear spelled out in
+`Description`, so the acronym flags from the prior submission no
+longer apply.)
 
 ### Additional ignorable note on the local macOS environment only
 

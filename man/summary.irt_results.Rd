@@ -50,8 +50,15 @@ callback function to compute additional item-level performance criteria
 (e.g., conditional reliability, external criterion SE).
 }
 \examples{
-\dontrun{
-results <- irt_simulate(study, iterations = 100, seed = 42)
+\donttest{
+# Minimal example (iterations reduced for speed; use 100+ in practice)
+design <- irt_design(
+  model = "1PL", n_items = 5,
+  item_params = list(b = seq(-2, 2, length.out = 5))
+)
+study <- irt_study(design, sample_sizes = c(200, 500))
+results <- irt_simulate(study, iterations = 10, seed = 42)
+
 s <- summary(results)
 s$item_summary
 s$theta_summary

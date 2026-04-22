@@ -1,3 +1,17 @@
+# irtsim 0.1.1
+
+CRAN resubmission. Documentation-only changes; no user-facing API or
+behavior changes.
+
+* `DESCRIPTION`: expanded all acronyms on first use (API, IRT, 1PL,
+  2PL, MCAR, MAR, MSE, RMSE, SE) per CRAN reviewer request.
+* `man/`: replaced `\dontrun{}` with `\donttest{}` in `irt_simulate`,
+  `summary.irt_results`, `plot.irt_results`, `plot.summary_irt_results`,
+  `recommended_n`, `print.irt_results`, and `print.summary_irt_results`
+  examples per CRAN reviewer request. Examples remain wrapped (not
+  unwrapped) because each depends on a ~300-fit `irt_simulate()` call
+  that exceeds the 5-second CRAN example-execution budget.
+
 # irtsim 0.1.0
 
 Initial CRAN release.

@@ -31,8 +31,13 @@ This is a convenience method for users who already have a summary;
 \code{\link[=plot.irt_results]{plot.irt_results()}} is the primary interface.
 }
 \examples{
-\dontrun{
-results <- irt_simulate(study, iterations = 100, seed = 42)
+\donttest{
+design <- irt_design(
+  model = "1PL", n_items = 5,
+  item_params = list(b = seq(-2, 2, length.out = 5))
+)
+study <- irt_study(design, sample_sizes = c(200, 500))
+results <- irt_simulate(study, iterations = 10, seed = 42)
 s <- summary(results)
 plot(s, criterion = "rmse", threshold = 0.15)
 }

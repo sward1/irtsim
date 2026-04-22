@@ -113,13 +113,15 @@ stdout safely). Set \code{progress = FALSE} in serial mode to suppress messages
 }
 }
 \examples{
-\dontrun{
+\donttest{
+# Minimal example (iterations and sample sizes reduced for speed;
+# use iterations >= 100 and 3+ sample sizes in practice)
 design <- irt_design(
-  model = "1PL", n_items = 10,
-  item_params = list(b = seq(-2, 2, length.out = 10))
+  model = "1PL", n_items = 5,
+  item_params = list(b = seq(-2, 2, length.out = 5))
 )
-study <- irt_study(design, sample_sizes = c(100, 250, 500))
-results <- irt_simulate(study, iterations = 100, seed = 42)
+study <- irt_study(design, sample_sizes = c(200, 500))
+results <- irt_simulate(study, iterations = 10, seed = 42)
 summary(results)
 plot(results)
 }

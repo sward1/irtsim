@@ -19,8 +19,13 @@ Display item parameter criteria and theta recovery statistics from a
 \code{\link[=summary.irt_results]{summary.irt_results()}} object.
 }
 \examples{
-\dontrun{
-results <- irt_simulate(study, iterations = 100, seed = 42)
+\donttest{
+design <- irt_design(
+  model = "1PL", n_items = 5,
+  item_params = list(b = seq(-2, 2, length.out = 5))
+)
+study <- irt_study(design, sample_sizes = c(200, 500))
+results <- irt_simulate(study, iterations = 10, seed = 42)
 s <- summary(results)
 print(s)
 }

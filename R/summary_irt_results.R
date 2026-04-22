@@ -48,8 +48,15 @@
 #' 2074--2102. \doi{10.1002/sim.8086}
 #'
 #' @examples
-#' \dontrun{
-#' results <- irt_simulate(study, iterations = 100, seed = 42)
+#' \donttest{
+#' # Minimal example (iterations reduced for speed; use 100+ in practice)
+#' design <- irt_design(
+#'   model = "1PL", n_items = 5,
+#'   item_params = list(b = seq(-2, 2, length.out = 5))
+#' )
+#' study <- irt_study(design, sample_sizes = c(200, 500))
+#' results <- irt_simulate(study, iterations = 10, seed = 42)
+#'
 #' s <- summary(results)
 #' s$item_summary
 #' s$theta_summary
@@ -330,8 +337,13 @@ summary.irt_results <- function(object, criterion = NULL, param = NULL,
 #' @return `x`, invisibly.
 #'
 #' @examples
-#' \dontrun{
-#' results <- irt_simulate(study, iterations = 100, seed = 42)
+#' \donttest{
+#' design <- irt_design(
+#'   model = "1PL", n_items = 5,
+#'   item_params = list(b = seq(-2, 2, length.out = 5))
+#' )
+#' study <- irt_study(design, sample_sizes = c(200, 500))
+#' results <- irt_simulate(study, iterations = 10, seed = 42)
 #' s <- summary(results)
 #' print(s)
 #' }

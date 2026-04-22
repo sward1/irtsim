@@ -19,8 +19,13 @@ Display a compact summary of an \code{\link[=irt_simulate]{irt_simulate()}} resu
 items, sample sizes, iterations, convergence rate, and elapsed time.
 }
 \examples{
-\dontrun{
-results <- irt_simulate(study, iterations = 100, seed = 42)
+\donttest{
+design <- irt_design(
+  model = "1PL", n_items = 5,
+  item_params = list(b = seq(-2, 2, length.out = 5))
+)
+study <- irt_study(design, sample_sizes = c(200, 500))
+results <- irt_simulate(study, iterations = 10, seed = 42)
 print(results)
 }
 
