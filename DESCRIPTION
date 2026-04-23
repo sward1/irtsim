@@ -1,6 +1,6 @@
 Package: irtsim
 Title: Monte Carlo Simulation-Based Sample-Size Planning for Item Response Theory
-Version: 0.1.1
+Version: 0.1.1.9000
 Authors@R:
     person("Stephen", "Ward", , "stephen_ward+irtsim@abhome.co", role = c("aut", "cre"))
 Description: Provides a pipeline application programming interface (API) for
