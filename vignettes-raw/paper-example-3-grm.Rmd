@@ -45,8 +45,7 @@ requires access to the fitted model object, which irtsim does not
 currently expose per iteration. What we reproduce here is the
 **item-level parameter recovery** component (discrimination and
 threshold RMSE, bias, coverage), using a GRM with clinically realistic
-parameters. For the full gap analysis, see
-`vignette("paper-reproduction-gaps")`.
+parameters.
 
 ## Background
 
@@ -267,10 +266,6 @@ available for estimating those thresholds.
 The practical recommendation: clinical scale calibration studies
 should target the sample size needed for the *most difficult*
 parameter to recover, which is typically the most extreme threshold.
-
-For the paper's full Example 3 criterion — RMSE of conditional
-reliability at theta = 2.0 — see `vignette("paper-reproduction-gaps")`
-and Obj 31 in the project backlog.
 
 ## References
 

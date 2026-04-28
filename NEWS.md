@@ -1,5 +1,14 @@
 # irtsim (development version)
 
+* Removed the `paper-reproduction-gaps` vignette. Its content was a
+  scorecard of paper Examples 2 and 3 reproduction gaps that pointed
+  at deferred objectives (Obj 30/31). Those objectives are now
+  superseded by a planned pluggable `fit_fn` / `extract_fn` hook
+  (Obj 39, targeted for v0.3.0); the standalone gaps vignette no
+  longer reflects the roadmap. Cross-references to it from
+  `paper-example-2-mcar` and `paper-example-3-grm` have also been
+  removed.
+
 # irtsim 0.1.1
 
 CRAN resubmission. Documentation-only changes; no user-facing API or

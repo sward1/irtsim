@@ -45,8 +45,7 @@ API permits. The paper's full Example 2 uses a bivariate latent trait
 (theta + external criterion) with a TAM latent regression — features
 irtsim does not yet support. What we *can* reproduce is the impact of
 MCAR missingness on item parameter recovery, which is one of the
-paper's key design variables. For the full gap analysis, see
-`vignette("paper-reproduction-gaps")`.
+paper's key design variables.
 
 We also demonstrate irtsim's **custom criterion callback**
 (`criterion_fn`), which lets users compute arbitrary item-level
@@ -277,11 +276,6 @@ the number of items, and the discrimination structure.
 
 The `criterion_fn` callback demonstrated here allows users to define
 domain-specific metrics without modifying irtsim internals.
-
-For the paper's full Example 2 — which uses the SE of a
-theta-criterion correlation from a TAM latent regression — see
-`vignette("paper-reproduction-gaps")` and Obj 30 in the project
-backlog.
 
 ## References
 
