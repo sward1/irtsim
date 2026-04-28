@@ -169,7 +169,8 @@ The paper reports sample-size requirements in the same sense.
 
 ```{r rec_n}
 sim_summary <- summary(res, criterion = "mse", param = "b")
-rec <- recommended_n(sim_summary, criterion = "mse", threshold = 0.05, param = "b")
+rec <- recommended_n(sim_summary, criterion = "mse", threshold = 0.05,
+                     param = "b", aggregate = "none")
 head(rec, 10)
 ```
 

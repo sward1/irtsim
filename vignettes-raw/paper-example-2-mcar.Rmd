@@ -253,9 +253,11 @@ print(sum_mcar30$theta_summary[, c("sample_size", "mean_cor", "mean_rmse")])
 
 ```{r summary-table}
 rec_a_complete <- recommended_n(sum_complete, criterion = "rmse",
-                                threshold = 0.20, param = "a")
+                                threshold = 0.20, param = "a",
+                                aggregate = "none")
 rec_a_mcar     <- recommended_n(sum_mcar30,   criterion = "rmse",
-                                threshold = 0.20, param = "a")
+                                threshold = 0.20, param = "a",
+                                aggregate = "none")
 
 n_items <- nrow(rec_a_complete)
 n_na_complete <- sum(is.na(rec_a_complete$recommended_n))

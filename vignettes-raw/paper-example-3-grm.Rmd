@@ -243,9 +243,12 @@ print(sim_summary$theta_summary[, c("sample_size", "mean_cor", "mean_rmse")])
 ## Summary
 
 ```{r summary-table}
-rec_a  <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25, param = "a")
-rec_b1 <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25, param = "b1")
-rec_b3 <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25, param = "b3")
+rec_a  <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25,
+                        param = "a", aggregate = "none")
+rec_b1 <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25,
+                        param = "b1", aggregate = "none")
+rec_b3 <- recommended_n(sim_summary, criterion = "rmse", threshold = 0.25,
+                        param = "b3", aggregate = "none")
 
 n_items <- nrow(rec_a)
 

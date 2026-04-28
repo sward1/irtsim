@@ -1,5 +1,17 @@
 # irtsim (development version)
 
+* `recommended_n()` gains an `aggregate` parameter
+  (`"max"` / `"mean"` / `"median"` / `"none"`, default `"max"`). The
+  default return is now an integer scalar — the smallest sample size
+  that powers every item/param at the requested threshold — with a
+  `details` attribute carrying the per-item data frame plus
+  `aggregate`, `criterion`, and `threshold` attributes. `"mean"` and
+  `"median"` round up via `ceiling()` so the recommendation never
+  falls below the central tendency. Pass `aggregate = "none"` to
+  recover the previous per-item data frame return. **Behavior
+  change:** the default return shape changed from a per-item data
+  frame to a scalar; closes the footgun where users could under-power
+  by forgetting to take `max()` across items.
 * Removed the `paper-reproduction-gaps` vignette. Its content was a
   scorecard of paper Examples 2 and 3 reproduction gaps that pointed
   at deferred objectives (Obj 30/31). Those objectives are now

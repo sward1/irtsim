@@ -212,9 +212,11 @@ ggplot(agg_b, aes(x = sample_size, colour = model, fill = model)) +
 
 ```{r summary-table}
 rec_correct <- recommended_n(summary(res_correct, param = "b"),
-                             criterion = "rmse", threshold = 0.20, param = "b")
+                             criterion = "rmse", threshold = 0.20, param = "b",
+                             aggregate = "none")
 rec_misspec <- recommended_n(summary(res_misspec, param = "b"),
-                             criterion = "rmse", threshold = 0.20, param = "b")
+                             criterion = "rmse", threshold = 0.20, param = "b",
+                             aggregate = "none")
 
 n_items <- nrow(rec_correct)
 n_na_correct <- sum(is.na(rec_correct$recommended_n))

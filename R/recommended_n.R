@@ -28,9 +28,15 @@
 #' @param param Optional character vector. Filter to specific parameter
 #'   types (e.g., `"a"`, `"b"`, `"b1"`).
 #' @param item Optional integer vector. Filter to specific item numbers.
+#' @param aggregate Character. How to roll the per-item recommended sample
+#'   sizes up into a single recommendation. One of `"max"` (default — the
+#'   smallest N that powers every item/param), `"mean"`, `"median"`, or
+#'   `"none"` (return the per-item data frame unchanged). `"mean"` and
+#'   `"median"` round up via `ceiling()` so the recommendation is never
+#'   under the computed central tendency.
 #' @param ... Additional arguments (ignored).
 #'
-#' @return A data frame with columns:
+#' @return When `aggregate = "none"`, a data frame with columns:
 #'   \describe{
 #'     \item{item}{Item number.}
 #'     \item{param}{Parameter name.}
@@ -39,6 +45,12 @@
 #'     \item{criterion}{The criterion used (echoed back for reference).}
 #'     \item{threshold}{The threshold used (echoed back for reference).}
 #'   }
+#'   When `aggregate` is `"max"`, `"mean"`, or `"median"` (the typical
+#'   case), an integer scalar carrying the recommended sample size with
+#'   attributes `details` (the per-item data frame above), `aggregate`,
+#'   `criterion`, and `threshold`. If any item/param combination fails to
+#'   meet the threshold at every tested sample size, the aggregate is
+#'   `NA_integer_` and a warning lists the affected combinations.
 #'
 #' @examples
 #' \donttest{
@@ -50,8 +62,16 @@
 #' results <- irt_simulate(study, iterations = 10, seed = 42)
 #' s <- summary(results)
 #'
-#' # Minimum N for RMSE <= 0.20 on all items
-#' recommended_n(s, criterion = "rmse", threshold = 0.20)
+#' # Default — single recommended N (max across items) for RMSE <= 0.20
+#' n_rec <- recommended_n(s, criterion = "rmse", threshold = 0.20)
+#' n_rec
+#' attr(n_rec, "details")  # per-item breakdown
+#'
+#' # Mean / median aggregates (rounded up via ceiling)
+#' recommended_n(s, criterion = "rmse", threshold = 0.20, aggregate = "mean")
+#'
+#' # Legacy behavior — full per-item data frame
+#' recommended_n(s, criterion = "rmse", threshold = 0.20, aggregate = "none")
 #'
 #' # Minimum N for 95% coverage on difficulty parameters only
 #' recommended_n(s, criterion = "coverage", threshold = 0.95, param = "b")
@@ -68,7 +88,10 @@ recommended_n <- function(object, ...) {
 #' @rdname recommended_n
 #' @export
 recommended_n.summary_irt_results <- function(object, criterion, threshold,
-                                               param = NULL, item = NULL, ...) {
+                                               param = NULL, item = NULL,
+                                               aggregate = c("max", "mean",
+                                                             "median", "none"),
+                                               ...) {
 
 
   # --- Validate input ---
@@ -100,6 +123,18 @@ recommended_n.summary_irt_results <- function(object, criterion, threshold,
   if (!is.numeric(threshold) || length(threshold) != 1L || threshold <= 0) {
     stop("`threshold` must be a single positive number.", call. = FALSE)
   }
+
+  # --- Validate aggregate ---
+  valid_agg <- c("max", "mean", "median", "none")
+  aggregate <- tryCatch(
+    match.arg(aggregate, choices = valid_agg),
+    error = function(e) {
+      cli::cli_abort(
+        "{.arg aggregate} must be one of {.val {valid_agg}}, not {.val {aggregate}}.",
+        call = NULL
+      )
+    }
+  )
 
   # --- Filter by param ---
   is_df <- object$item_summary
@@ -154,8 +189,8 @@ recommended_n.summary_irt_results <- function(object, criterion, threshold,
     }
   }
 
-  # --- Assemble output ---
-  data.frame(
+  # --- Assemble per-item output ---
+  details <- data.frame(
     item          = combos$item,
     param         = combos$param,
     recommended_n = rec_n,
@@ -163,4 +198,39 @@ recommended_n.summary_irt_results <- function(object, criterion, threshold,
     threshold     = rep(threshold, nrow(combos)),
     stringsAsFactors = FALSE
   )
+
+  if (aggregate == "none") {
+    return(details)
+  }
+
+  # --- Aggregate to a scalar ---
+  na_rows <- which(is.na(details$recommended_n))
+  if (length(na_rows) > 0L) {
+    cmp <- if (higher_is_better) ">=" else "<="
+    failed <- paste0("(item ", details$item[na_rows],
+                     ", param ", details$param[na_rows], ")")
+    cli::cli_warn(
+      c(
+        "No tested sample size meets {.field {criterion}} {cmp} {threshold} for some item/param combinations.",
+        "i" = "Affected: {failed}",
+        "i" = "Aggregate returned as NA. Inspect {.code attr(result, \"details\")} for per-item values."
+      )
+    )
+    agg_value <- NA_integer_
+  } else {
+    agg_value <- switch(
+      aggregate,
+      max    = max(details$recommended_n),
+      mean   = ceiling(mean(details$recommended_n)),
+      median = ceiling(stats::median(details$recommended_n))
+    )
+    agg_value <- as.integer(agg_value)
+  }
+
+  out <- agg_value
+  attr(out, "details")   <- details
+  attr(out, "aggregate") <- aggregate
+  attr(out, "criterion") <- criterion
+  attr(out, "threshold") <- threshold
+  out
 }

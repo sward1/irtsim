@@ -251,7 +251,8 @@ test_that("recommended_n() works on GRM summary", {
   res <- irt_simulate(study, iterations = 5, seed = 303)
   s <- summary(res)
 
-  rec <- recommended_n(s, criterion = "rmse", threshold = 1.0)
+  rec <- recommended_n(s, criterion = "rmse", threshold = 1.0,
+                       aggregate = "none")
   expect_true(is.data.frame(rec))
   expect_true(all(c("item", "param", "recommended_n") %in% names(rec)))
 })
@@ -261,7 +262,8 @@ test_that("recommended_n() returns results for all GRM params", {
   res <- irt_simulate(study, iterations = 5, seed = 303)
   s <- summary(res)
 
-  rec <- recommended_n(s, criterion = "rmse", threshold = 1.0)
+  rec <- recommended_n(s, criterion = "rmse", threshold = 1.0,
+                       aggregate = "none")
   expect_true(all(c("a", "b1", "b2", "b3") %in% unique(rec$param)))
 })
 
@@ -270,7 +272,8 @@ test_that("recommended_n() with param filter on GRM", {
   res <- irt_simulate(study, iterations = 5, seed = 303)
   s <- summary(res)
 
-  rec <- recommended_n(s, criterion = "rmse", threshold = 1.0, param = "b2")
+  rec <- recommended_n(s, criterion = "rmse", threshold = 1.0, param = "b2",
+                       aggregate = "none")
   expect_true(all(rec$param == "b2"))
 })
 

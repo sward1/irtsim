@@ -7,7 +7,15 @@
 \usage{
 recommended_n(object, ...)
 
-\method{recommended_n}{summary_irt_results}(object, criterion, threshold, param = NULL, item = NULL, ...)
+\method{recommended_n}{summary_irt_results}(
+  object,
+  criterion,
+  threshold,
+  param = NULL,
+  item = NULL,
+  aggregate = c("max", "mean", "median", "none"),
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{summary_irt_results} object from \code{\link[=summary.irt_results]{summary.irt_results()}}.}
@@ -25,9 +33,16 @@ must meet.}
 types (e.g., \code{"a"}, \code{"b"}, \code{"b1"}).}
 
 \item{item}{Optional integer vector. Filter to specific item numbers.}
+
+\item{aggregate}{Character. How to roll the per-item recommended sample
+sizes up into a single recommendation. One of \code{"max"} (default — the
+smallest N that powers every item/param), \code{"mean"}, \code{"median"}, or
+\code{"none"} (return the per-item data frame unchanged). \code{"mean"} and
+\code{"median"} round up via \code{ceiling()} so the recommendation is never
+under the computed central tendency.}
 }
 \value{
-A data frame with columns:
+When \code{aggregate = "none"}, a data frame with columns:
 \describe{
 \item{item}{Item number.}
 \item{param}{Parameter name.}
@@ -36,6 +51,12 @@ or \code{NA} if no tested sample size meets it.}
 \item{criterion}{The criterion used (echoed back for reference).}
 \item{threshold}{The threshold used (echoed back for reference).}
 }
+When \code{aggregate} is \code{"max"}, \code{"mean"}, or \code{"median"} (the typical
+case), an integer scalar carrying the recommended sample size with
+attributes \code{details} (the per-item data frame above), \code{aggregate},
+\code{criterion}, and \code{threshold}. If any item/param combination fails to
+meet the threshold at every tested sample size, the aggregate is
+\code{NA_integer_} and a warning lists the affected combinations.
 }
 \description{
 Given a \code{\link[=summary.irt_results]{summary.irt_results()}} object, find the smallest sample size
@@ -59,8 +80,16 @@ study <- irt_study(design, sample_sizes = c(200, 500))
 results <- irt_simulate(study, iterations = 10, seed = 42)
 s <- summary(results)
 
-# Minimum N for RMSE <= 0.20 on all items
-recommended_n(s, criterion = "rmse", threshold = 0.20)
+# Default — single recommended N (max across items) for RMSE <= 0.20
+n_rec <- recommended_n(s, criterion = "rmse", threshold = 0.20)
+n_rec
+attr(n_rec, "details")  # per-item breakdown
+
+# Mean / median aggregates (rounded up via ceiling)
+recommended_n(s, criterion = "rmse", threshold = 0.20, aggregate = "mean")
+
+# Legacy behavior — full per-item data frame
+recommended_n(s, criterion = "rmse", threshold = 0.20, aggregate = "none")
 
 # Minimum N for 95\% coverage on difficulty parameters only
 recommended_n(s, criterion = "coverage", threshold = 0.95, param = "b")
