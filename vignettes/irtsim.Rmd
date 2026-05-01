@@ -1,0 +1,249 @@
+---
+title: "Planning a Sample Size for an IRT Study"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Planning a Sample Size for an IRT Study}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  fig.width  = 7,
+  fig.height = 4.5
+)
+```
+
+## What is irtsim for?
+
+You are planning an item response theory (IRT) study and you need an
+answer to one question: **how many examinees do I need?** Power-analysis
+formulas exist for simple designs, but real assessments combine
+multiple items, multiple parameters per item, missing-data mechanisms,
+and — increasingly — model misspecification you cannot fully
+characterize a priori. `irtsim` answers the question by simulation:
+you specify a plausible data-generating model, sweep across candidate
+sample sizes, fit the estimation model many times, and report the
+sample size at which a chosen performance criterion (mean squared
+error, bias, coverage, …) crosses a target threshold.
+
+The package implements the 10-decision framework from
+Schroeders & Gnambs (2025). This vignette walks you through the
+abridged version: pick a design, pick sample sizes, run, interpret.
+
+```{r load}
+library(irtsim)
+library(ggplot2)
+```
+
+## The pipeline
+
+Three function calls, three S3 objects:
+
+```
+irt_design()    →   irt_study()    →   irt_simulate()    →   summary() / plot()
+data-generating     conditions:        Monte Carlo         performance
+model               sample sizes,      iterations          criteria,
+                    missing data                            recommendations
+```
+
+Every step is immutable: you can re-use a `design` across many
+`study` objects, and re-run `irt_simulate()` without rebuilding
+upstream state.
+
+## Step 1 — Specify the data-generating model
+
+`irt_design()` takes three required arguments: the IRT `model`
+(`"1PL"`, `"2PL"`, or `"GRM"`), the number of items, and a list of
+true item parameters. There are three common ways to supply the
+parameters.
+
+### Path A: by hand
+
+If you have specific values in mind — from a content blueprint, a
+prior pilot, or a paper you are replicating — pass them directly.
+
+```{r design-byhand}
+design_byhand <- irt_design(
+  model     = "2PL",
+  n_items   = 10,
+  item_params = list(
+    a = c(0.8, 1.0, 1.1, 1.2, 1.3, 0.9, 1.4, 1.0, 1.2, 1.1),
+    b = seq(-2, 2, length.out = 10)
+  )
+)
+design_byhand
+```
+
+### Path B: from a helper
+
+For a typical I/O or education assessment, you usually want
+discriminations drawn from a lognormal and difficulties spanning the
+trait range. `irt_params_2pl()` does this in one line:
+
+```{r design-helper}
+set.seed(2026)
+ip <- irt_params_2pl(
+  n_items = 10,
+  a_mean  = 0,    a_sd  = 0.25,   # log-normal: median a = 1
+  b_mean  = 0,    b_sd  = 1,
+  b_range = c(-2, 2)
+)
+design_helper <- irt_design(
+  model       = "2PL",
+  n_items     = 10,
+  item_params = ip
+)
+```
+
+Use `irt_params_grm()` for graded-response items.
+
+### Path C: from a prior fit
+
+If you have already calibrated a similar instrument, treat the prior
+estimates as the truth for planning purposes. `mirt::LSAT7` ships
+with `mirt` and gives a clean, fast worked example.
+
+```{r design-priorfit}
+prior_data <- mirt::expand.table(mirt::LSAT7)
+prior_fit  <- mirt::mirt(prior_data, 1, "2PL", verbose = FALSE)
+co <- mirt::coef(prior_fit, IRTpars = TRUE, simplify = TRUE)$items
+
+design_prior <- irt_design(
+  model       = "2PL",
+  n_items     = nrow(co),
+  item_params = list(a = co[, "a"], b = co[, "b"])
+)
+co
+```
+
+For the rest of this vignette we use `design_helper` — a generic
+2PL with 10 items.
+
+## Step 2 — Add study conditions
+
+`irt_study()` adds the things that vary across the simulation grid:
+the sample sizes you want to compare, optionally a missing-data
+mechanism, and optionally an estimation model that differs from the
+data-generating model (model misspecification studies). For a
+no-missing-data planning question, two arguments are enough.
+
+```{r study}
+study <- irt_study(
+  design       = design_helper,
+  sample_sizes = c(100, 250, 500, 1000)
+)
+study
+```
+
+The four sample sizes span a typical planning range: 100 is small
+for a 10-item 2PL, 1000 should be ample. The simulation will give us
+the curve in between.
+
+## Step 3 — Run the simulation
+
+`irt_simulate()` is where the work happens: for each `(sample_size,
+iteration)` cell, it generates data under `design`, fits the
+estimation model, and stores parameter estimates. Two arguments
+control runtime: `iterations` (more iterations → tighter Monte Carlo
+standard errors, longer runtime) and `parallel` (off by default;
+turn on for production-scale runs).
+
+```{r simulate, cache = FALSE}
+results <- irt_simulate(
+  study      = study,
+  iterations = 50,
+  seed       = 1,
+  progress   = FALSE
+)
+```
+
+A fixed `seed` is required — every simulation is reproducible by
+default. `progress = FALSE` suppresses the cli progress bar so the
+vignette renders cleanly. For real studies, leave it on.
+
+`iterations = 50` is small — chosen here to keep the vignette build
+fast. For production planning use 500–1000 iterations (or use
+`irt_iterations()` to compute the count needed for a target Monte
+Carlo standard error). Set `parallel = TRUE` to dispatch iterations
+across `future` workers; reproducibility is preserved within mode.
+
+## Step 4 — Interpret the results
+
+`summary()` returns one row per `(sample_size, item, parameter)`
+combination, with all performance criteria attached.
+
+```{r summary}
+res_summary <- summary(results,
+                       criterion = c("mse", "bias", "rmse", "coverage"))
+head(res_summary$item_summary)
+```
+
+Plot the criterion of interest against sample size to see where the
+curve flattens. Each line is one item's `b` (difficulty) MSE
+trajectory.
+
+```{r plot, fig.alt = "MSE of difficulty estimates by sample size, one line per item"}
+plot(res_summary,
+     criterion = "mse",
+     param     = "b",
+     threshold = 0.05)
+```
+
+The dashed horizontal line is the planning threshold (here 0.05 — a
+common default for parameter recovery). Items whose lines cross
+below the threshold are adequately recovered at that sample size;
+items still above need a larger N.
+
+## Step 5 — Get a recommendation
+
+`recommended_n()` reads off the smallest sample size at which the
+criterion crosses the threshold. The default rolls the per-item
+recommendations up to a single number (the maximum, so no item is
+left under-powered):
+
+```{r recommend}
+n_rec <- recommended_n(res_summary,
+                       criterion = "mse",
+                       threshold = 0.05,
+                       param     = "b")
+n_rec
+```
+
+The scalar return is the headline answer. The `details` attribute
+preserves the per-item table so you can inspect which items drove
+the recommendation:
+
+```{r recommend-details}
+attr(n_rec, "details")
+```
+
+If you want a less conservative summary, pass `aggregate = "mean"`
+or `aggregate = "median"`. To get the legacy per-item data frame
+back, use `aggregate = "none"`.
+
+## Where to next
+
+  - **Reproduce the paper.** The four `paper-example-*` vignettes
+    walk through the worked examples from Schroeders & Gnambs (2025).
+  - **Missing data.** Pass `missing = "mcar"`, `"mar"`, `"booklet"`,
+    or `"linking"` to `irt_study()`. See `?irt_study` and the
+    `paper-example-2-mcar` vignette.
+  - **Model misspecification.** Pass `estimation_model` to
+    `irt_study()` to fit a different model than you generated under.
+    See `paper-example-1b-misspecification`.
+  - **Custom criteria.** Pass `criterion_fn` to `summary()` to
+    compute a user-defined performance criterion alongside the
+    built-ins.
+  - **Parallel execution.** Set `parallel = TRUE` in `irt_simulate()`
+    and configure a `future::plan()` for the workers. Reproducibility
+    is preserved within mode.
+
+## References
+
+Schroeders, U., & Gnambs, T. (2025). Sample size planning for item
+response models: A tutorial for the quantitative researcher.
+*Methodology, 21*(1), 1–28.
+<https://doi.org/10.1177/25152459251314798>

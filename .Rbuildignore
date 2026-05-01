@@ -16,3 +16,6 @@
 ^vignettes-raw$
 ^cran-comments\.md$
 ^CRAN-SUBMISSION$
+^\.positai$
+^\.claude$
+^vignettes/irtsim\.html$

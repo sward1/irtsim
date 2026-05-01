@@ -1,5 +1,11 @@
 # irtsim (development version)
 
+* New `irtsim` getting-started vignette (`vignette("irtsim")`)
+  walking a stranger from "I need to plan an IRT study" through to
+  `recommended_n()`. The vignette builds live (eval=TRUE) so it
+  cannot drift from the package API. Three item-parameter
+  specification paths are demonstrated: by hand, via
+  `irt_params_2pl()`, and from a prior `mirt` calibration.
 * `irt_design()` now aborts with an informative error if
   `n_factors != 1`. Multidimensional IRT support is planned for
   v0.4.0; until then, the parameter is retained on the design for

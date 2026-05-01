@@ -47,6 +47,10 @@ reference:
       - print.summary_irt_results
 
 articles:
+  - title: "Get Started"
+    navbar: "Get Started"
+    contents:
+      - irtsim
   - title: "Examples"
     navbar: "Examples"
     contents:
