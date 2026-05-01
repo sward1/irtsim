@@ -1,5 +1,11 @@
 # irtsim (development version)
 
+* `irt_design()` now aborts with an informative error if
+  `n_factors != 1`. Multidimensional IRT support is planned for
+  v0.4.0; until then, the parameter is retained on the design for
+  forward compatibility but silently accepting `n_factors > 1`
+  produced a cryptic mirt internal error downstream. The new abort
+  fires up front and points users at the planned support.
 * `recommended_n()` gains an `aggregate` parameter
   (`"max"` / `"mean"` / `"median"` / `"none"`, default `"max"`). The
   default return is now an integer scalar — the smallest sample size

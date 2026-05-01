@@ -134,16 +134,47 @@ test_that("irt_design defaults to 1 factor", {
   expect_equal(design$n_factors, 1L)
 })
 
-test_that("irt_design accepts n_factors argument", {
-  # For multidimensional, a would be a matrix (n_items x n_factors)
+test_that("irt_design rejects n_factors != 1 (Obj 33: MIRT deferred to v0.4.0)", {
+  # Multidimensional support is planned for v0.4.0 (Obj 40); until then,
+  # n_factors != 1 must abort up front rather than letting the design
+  # propagate to a cryptic mirt internal error during fit.
   a <- matrix(rlnorm(20), nrow = 10, ncol = 2)
   b <- rnorm(10)
-  design <- irt_design(
-    model = "2PL", n_items = 10,
-    item_params = list(a = a, b = b),
-    n_factors = 2
+  expect_error(
+    irt_design(
+      model = "2PL", n_items = 10,
+      item_params = list(a = a, b = b),
+      n_factors = 2
+    ),
+    regexp = "Multidimensional"
   )
-  expect_equal(design$n_factors, 2L)
+})
+
+test_that("irt_design n_factors abort cites v0.4.0 / Obj 40 deferral", {
+  # Message contract: must point users at the planned future support so the
+  # error is informative rather than a dead end.
+  expect_error(
+    irt_design(
+      model = "1PL", n_items = 5, item_params = list(b = rnorm(5)),
+      n_factors = 3
+    ),
+    regexp = "v0\\.4\\.0|Obj 40"
+  )
+})
+
+test_that("irt_design accepts n_factors = 1 (numeric or integer)", {
+  # Both 1 and 1L must pass through unchanged. Coercion to integer is the
+  # pre-existing behavior and must not regress.
+  d_int <- irt_design(
+    model = "1PL", n_items = 5, item_params = list(b = rnorm(5)),
+    n_factors = 1L
+  )
+  d_num <- irt_design(
+    model = "1PL", n_items = 5, item_params = list(b = rnorm(5)),
+    n_factors = 1
+  )
+  expect_identical(d_int$n_factors, 1L)
+  expect_identical(d_num$n_factors, 1L)
 })
 
 # --- Parameter Validation (Errors) ------------------------------------------

@@ -29,7 +29,10 @@ a function that takes a single argument \code{n} and returns a numeric vector
 of length \code{n}. Defaults to \code{"normal"}.}
 
 \item{n_factors}{Positive integer specifying the number of latent factors.
-Defaults to \code{1L}.}
+Defaults to \code{1L}. Currently only \code{n_factors = 1} is supported;
+multidimensional IRT (\code{n_factors > 1}) is planned for v0.4.0. Passing any
+value other than \code{1} raises an error rather than silently propagating an
+unsupported design to the estimator.}
 }
 \value{
 An S3 object of class \code{irt_design} (a named list) with elements

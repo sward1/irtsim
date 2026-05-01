@@ -22,7 +22,10 @@
 #'   a function that takes a single argument `n` and returns a numeric vector
 #'   of length `n`. Defaults to `"normal"`.
 #' @param n_factors Positive integer specifying the number of latent factors.
-#'   Defaults to `1L`.
+#'   Defaults to `1L`. Currently only `n_factors = 1` is supported;
+#'   multidimensional IRT (`n_factors > 1`) is planned for v0.4.0. Passing any
+#'   value other than `1` raises an error rather than silently propagating an
+#'   unsupported design to the estimator.
 #'
 #' @return An S3 object of class `irt_design` (a named list) with elements
 #'   `model`, `n_items`, `item_params`, `theta_dist`, and `n_factors`.
@@ -108,7 +111,18 @@ irt_design <- function(model,
   }
 
   # --- Validate n_factors -----------------------------------------------------
+  # Multidimensional IRT (n_factors > 1) is not yet supported. The parameter
+  # is retained for forward compatibility with v0.4.0 (Obj 40); until then,
+  # abort up front rather than letting an unsupported design propagate to a
+  # cryptic mirt internal error during fit.
   n_factors <- as.integer(n_factors)
+  if (!identical(n_factors, 1L)) {
+    cli::cli_abort(c(
+      "Multidimensional models not yet supported; {.arg n_factors} must be 1.",
+      "i" = "Multidimensional support is planned for v0.4.0 (see Obj 40).",
+      "x" = "You passed: {.val {n_factors}}"
+    ))
+  }
 
   # --- Construct S3 object ----------------------------------------------------
   structure(
