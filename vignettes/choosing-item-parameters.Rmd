@@ -1,0 +1,275 @@
+---
+title: "Choosing Item Parameters for Sample-Size Planning"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Choosing Item Parameters for Sample-Size Planning}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>"
+)
+```
+
+## Why this matters
+
+Every `irtsim` sample-size recommendation rests on the item parameters you
+hand to `irt_design()`. Discrimination (`a`) and difficulty (`b`) values
+determine the test-information curve, which in turn determines how
+quickly each criterion (mean squared error, bias, coverage, …) tightens
+as N grows. Wrong parameters do not produce wrong code — they produce a
+plausible-looking N that is too small or too large for the test you
+actually plan to administer.
+
+The getting-started vignette (`vignette("irtsim")`) sketches three
+ways to specify parameters: by hand, via a helper, or from a prior
+fit. This vignette is the deeper reference for **applied** users who
+need a worked example for each path plus a reference table of typical
+values for common assessment domains.
+
+```{r load}
+library(irtsim)
+```
+
+## Path A — Import from a prior fit
+
+If you already have a calibrated instrument (or a similar one), the
+fastest planning input is its parameter estimates. Two common cases:
+you have a saved `mirt` model object, or you have a parameter table
+in a CSV / Excel file.
+
+### A1. From a `mirt` fit object
+
+`mirt::coef(fit, IRTpars = TRUE, simplify = TRUE)$items` returns a
+matrix in the IRT parameterization that `irt_design()` expects. For a
+2PL fit the columns are `a`, `b`, `g` (guessing, 0 for 2PL), `u`
+(upper, 1 for 2PL); pull `a` and `b` and you are done.
+
+```{r path-a1-mirt}
+prior_data <- mirt::expand.table(mirt::LSAT7)
+prior_fit  <- mirt::mirt(prior_data, 1, "2PL", verbose = FALSE)
+
+co <- mirt::coef(prior_fit, IRTpars = TRUE, simplify = TRUE)$items
+co
+
+design_from_fit <- irt_design(
+  model       = "2PL",
+  n_items     = nrow(co),
+  item_params = list(a = co[, "a"], b = co[, "b"])
+)
+design_from_fit
+```
+
+**If your saved fit only has slope-intercept (`d`) values.** Some
+older `mirt` workflows store `coef(fit, IRTpars = FALSE)` output,
+which gives `a1` and `d` rather than `a` and `b`. Convert with the
+standard identity `b = -d / a`:
+
+```{r path-a1-convert}
+co_si <- mirt::coef(prior_fit, IRTpars = FALSE, simplify = TRUE)$items
+a_vec <- co_si[, "a1"]
+b_vec <- -co_si[, "d"] / a_vec
+all.equal(b_vec, co[, "b"])  # same as IRTpars=TRUE path
+```
+
+For graded-response (GRM) fits, the `b` columns are the category
+thresholds (`b1`, `b2`, …). Pass them as a matrix to
+`irt_design(model = "GRM", item_params = list(a = ..., b = ...))`.
+
+### A2. From a CSV or Excel parameter table
+
+Technical manuals and prior calibration reports often publish
+parameter tables as CSV or Excel. Read them in and reshape to the
+list form `irt_design()` expects.
+
+```{r path-a2-csv}
+# Imagine this CSV came from a prior calibration report.
+csv_text <- "
+item,a,b
+i01,1.05,-1.80
+i02,0.92,-0.95
+i03,1.18,-0.20
+i04,1.40, 0.45
+i05,0.88, 1.15
+i06,1.22, 1.95
+"
+params_df <- read.csv(text = csv_text, strip.white = TRUE)
+
+design_from_csv <- irt_design(
+  model       = "2PL",
+  n_items     = nrow(params_df),
+  item_params = list(a = params_df$a, b = params_df$b)
+)
+design_from_csv
+```
+
+For Excel, swap `read.csv()` for `readxl::read_excel()` (or your
+preferred reader); the rest of the pattern is identical. The only
+contract `irt_design()` enforces is that `a` and `b` are numeric
+vectors of length `n_items` (matrix `b` for GRM).
+
+## Path B — Domain-typical preset values
+
+When you do **not** have a prior fit and are planning a brand-new
+test, the next-best input is a distribution drawn from values typical
+of your assessment domain. The reference table below summarises four
+common domains; the calls that follow show how to instantiate each
+with `irt_params_2pl()` (or `irt_params_grm()` for polytomous
+clinical scales).
+
+A worked example per domain — same `n_items = 20`, distinct
+distribution arguments:
+
+```{r path-b-cognitive}
+# Cognitive ability — high discriminations, broad difficulty range
+ip_cog <- irt_params_2pl(
+  n_items = 20,
+  a_mean  = 0.20, a_sd  = 0.30,   # log-normal: median a ~ 1.22
+  b_mean  = 0,    b_sd  = 1.20,
+  seed    = 1
+)
+summary(ip_cog$a); summary(ip_cog$b)
+```
+
+```{r path-b-personality}
+# Personality — moderate discriminations, broader trait coverage
+ip_pers <- irt_params_2pl(
+  n_items = 20,
+  a_mean  = -0.20, a_sd = 0.30,   # log-normal: median a ~ 0.82
+  b_mean  = 0,     b_sd = 1.50,
+  seed    = 1
+)
+summary(ip_pers$a); summary(ip_pers$b)
+```
+
+```{r path-b-clinical}
+# Clinical (PROMIS-style GRM, 5 categories) — high discriminations,
+# trait-spanning thresholds
+ip_clin <- irt_params_grm(
+  n_items      = 20,
+  n_categories = 5,
+  a_mean       = 0.10, a_sd = 0.30,   # median a ~ 1.10
+  b_mean       = 0,    b_sd = 1.20,
+  seed         = 1
+)
+summary(ip_clin$a)
+```
+
+```{r path-b-achievement}
+# Achievement / large-scale educational — moderate discriminations,
+# difficulty distribution centered on the cut score (here 0)
+ip_ach <- irt_params_2pl(
+  n_items = 20,
+  a_mean  = 0,    a_sd  = 0.25,   # median a = 1.00
+  b_mean  = 0,    b_sd  = 1.00,
+  seed    = 1
+)
+summary(ip_ach$a); summary(ip_ach$b)
+```
+
+Each list goes straight into `irt_design()`:
+
+```{r path-b-design}
+design_cog <- irt_design(model = "2PL", n_items = 20, item_params = ip_cog)
+design_cog
+```
+
+## Path C — Hypothesized / content-based
+
+When you have neither a prior fit nor a tight domain prior, you
+*do* still have content knowledge: item-review judgements, the
+target trait range, expected pass rates. Translate those into
+distribution arguments.
+
+A worked example. Suppose you are planning a 12-item screener for a
+narrow construct. Content review suggests:
+
+  - Items target the **mid-to-upper trait range** (most respondents
+    will pass the easiest items, the hardest items will separate the
+    high end). Translation: `b_dist = "even"`, `b_range = c(-0.5, 2)`.
+  - Items came from a single SME team with consistent quality;
+    expect **moderate, narrow-spread** discriminations. Translation:
+    `a_mean = 0`, `a_sd = 0.20` (median a = 1, narrow lognormal).
+
+```{r path-c}
+ip_screener <- irt_params_2pl(
+  n_items = 12,
+  a_mean  = 0,    a_sd  = 0.20,
+  b_dist  = "even", b_range = c(-0.5, 2),
+  seed    = 1
+)
+ip_screener
+
+design_screener <- irt_design(
+  model       = "2PL",
+  n_items     = 12,
+  item_params = ip_screener
+)
+design_screener
+```
+
+The trick is to keep the translation explicit: each distribution
+argument should map back to a content-review statement you can
+defend. If you cannot justify `b_sd = 1.5` over `b_sd = 1.0`, run
+the sample-size simulation under both and report the more
+conservative recommendation.
+
+## Reference table
+
+Typical parameter ranges for four common assessment domains. These
+are **starting points, not standards** — confirm against your
+instrument's technical manual or a published calibration in the same
+domain before locking a planning N.
+
+| Domain | Model | Discrimination (`a`) | Difficulty / threshold (`b`) | Source |
+|---|---|---|---|---|
+| **Cognitive ability** (e.g., ASVAB-type, ability tests) | 2PL or 3PL | log-normal, `meanlog ≈ 0.0–0.4`, `sdlog ≈ 0.30–0.50` (median a ~ 1.0–1.5) | Normal, mean 0, SD 1.0–1.5 | Hambleton & Swaminathan (1985); Hambleton, Swaminathan, & Rogers (1991) |
+| **Personality** (Big Five, narrow trait scales) | 2PL or GRM | log-normal, `meanlog ≈ −0.3 to 0.0`, `sdlog ≈ 0.25–0.40` (median a ~ 0.7–1.2) | Normal, mean 0, SD 1.2–1.8 (broader trait spread) | Reise & Waller (2009) |
+| **Clinical / health** (e.g., PROMIS, depression / anxiety scales) | GRM, 4–7 categories | log-normal, `meanlog ≈ 0.0–0.4`, `sdlog ≈ 0.30–0.40` (median a ~ 1.0–1.5) | Normal, mean 0, SD 1.0–1.5; thresholds ordered within item | Embretson & Reise (2000); PROMIS technical reports |
+| **Achievement / large-scale educational** (e.g., NAEP, K-12 assessments) | 2PL or 3PL | log-normal, `meanlog ≈ 0.0–0.2`, `sdlog ≈ 0.20–0.30` (median a ~ 0.8–1.2) | Normal, mean 0, SD 1.0; centred on the cut score | Mislevy & Bock (1990); typical large-scale assessment manuals |
+
+**Caveats.** (1) Ranges above are rules of thumb drawn from the cited
+literature; exact values vary by population, content domain, and
+calibration sample. (2) 3PL guessing parameters (relevant for
+multiple-choice cognitive items) and the upper-asymptote (4PL) are
+not yet supported in `irtsim` — planned for v0.2.0. (3) When
+unsure, simulate under both an optimistic and a pessimistic
+parameter assumption and report the more conservative N.
+
+## When the reference table is not enough
+
+If you find yourself typing the same six numbers from the reference
+table at the start of every planning project, that is a signal — it
+suggests a future helper of the form
+`irt_params_typical(domain, n_items, ...)` would be worth shipping.
+Until that helper exists (planned consideration in a future release
+once the 3PL / PCM / GPCM helpers land), the explicit
+`irt_params_2pl()` / `irt_params_grm()` calls above are the
+recommended pattern.
+
+## References
+
+Embretson, S. E., & Reise, S. P. (2000). *Item response theory for
+psychologists*. Lawrence Erlbaum Associates.
+
+Hambleton, R. K., & Swaminathan, H. (1985). *Item response theory:
+Principles and applications*. Kluwer-Nijhoff.
+
+Hambleton, R. K., Swaminathan, H., & Rogers, H. J. (1991).
+*Fundamentals of item response theory*. Sage.
+
+Mislevy, R. J., & Bock, R. D. (1990). *BILOG 3: Item analysis and
+test scoring with binary logistic models* (2nd ed.). Scientific
+Software.
+
+Reise, S. P., & Waller, N. G. (2009). Item response theory and
+clinical measurement. *Annual Review of Clinical Psychology, 5*(1),
+27–48. <https://doi.org/10.1146/annurev.clinpsy.032408.153553>
+
+Schroeders, U., & Gnambs, T. (2025). Sample size planning for item
+response models: A tutorial for the quantitative researcher.
+*Methodology, 21*(1), 1–28.
+<https://doi.org/10.1177/25152459251314798>

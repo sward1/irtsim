@@ -51,6 +51,7 @@ articles:
     navbar: "Get Started"
     contents:
       - irtsim
+      - choosing-item-parameters
   - title: "Examples"
     navbar: "Examples"
     contents:
