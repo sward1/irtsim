@@ -1,5 +1,16 @@
-# irtsim (development version)
+# irtsim 0.1.2
 
+* New `choosing-item-parameters` vignette
+  (`vignette("choosing-item-parameters")`) — deeper reference for the
+  three item-parameter specification workflows introduced in the
+  getting-started vignette: import from a prior `mirt` fit (with a
+  slope-intercept-to-IRT conversion worked example) or a CSV / Excel
+  parameter table; domain-typical preset values for cognitive ability,
+  personality, clinical, and achievement assessments with cited
+  reference ranges; and hypothesized / content-based specification
+  with explicit translation from item-review judgements to
+  distribution arguments. eval=TRUE knitr engine; no new exported
+  helpers in this release.
 * New `irtsim` getting-started vignette (`vignette("irtsim")`)
   walking a stranger from "I need to plan an IRT study" through to
   `recommended_n()`. The vignette builds live (eval=TRUE) so it
