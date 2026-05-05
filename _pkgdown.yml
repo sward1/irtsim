@@ -52,10 +52,3 @@ articles:
     contents:
       - irtsim
       - choosing-item-parameters
-  - title: "Examples"
-    navbar: "Examples"
-    contents:
-      - paper-example-1-linked-design
-      - paper-example-1b-misspecification
-      - paper-example-2-mcar
-      - paper-example-3-grm
