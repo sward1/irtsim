@@ -43,31 +43,22 @@ irt_params_2pl <- function(n_items,
                            b_sd = 1,
                            b_range = c(-2, 2),
                            seed = NULL) {
-
-  # Validate
-  n_items <- as.integer(n_items)
-  if (n_items < 1L) {
-    stop("`n_items` must be a positive integer. Got: ", n_items, ".",
-         call. = FALSE)
-  }
-
-  # Set seed if provided
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
-
-  # Generate discrimination
-  a <- generate_discrimination(n_items, a_dist, a_mean, a_sd)
-
-  # Generate difficulty
-  b <- switch(b_dist,
-    normal = stats::rnorm(n_items, mean = b_mean, sd = b_sd),
-    even = seq(b_range[1], b_range[2], length.out = n_items),
-    stop("`b_dist` must be 'normal' or 'even'. Got: '", b_dist, "'.",
-         call. = FALSE)
+  # Thin wrapper over the 2PL registry method (Obj 37 sub-step b refactor).
+  # All generation and validation logic lives in
+  # get_model_config("2PL")$generate_default_params(). This wrapper exists
+  # purely as a user-facing API surface; its signature and defaults are the
+  # single source of truth for the 2PL parameter-generation contract.
+  get_model_config("2PL")$generate_default_params(
+    n_items = n_items,
+    a_dist  = a_dist,
+    a_mean  = a_mean,
+    a_sd    = a_sd,
+    b_dist  = b_dist,
+    b_mean  = b_mean,
+    b_sd    = b_sd,
+    b_range = b_range,
+    seed    = seed
   )
-
-  list(a = a, b = b)
 }
 
 
@@ -112,43 +103,17 @@ irt_params_grm <- function(n_items,
                            b_mean = 0,
                            b_sd = 1,
                            seed = NULL) {
-
-  # Validate
-  n_items <- as.integer(n_items)
-  if (n_items < 1L) {
-    stop("`n_items` must be a positive integer. Got: ", n_items, ".",
-         call. = FALSE)
-  }
-
-  n_categories <- as.integer(n_categories)
-  if (n_categories < 2L) {
-    stop("`n_categories` must be >= 2. Got: ", n_categories, ".",
-         call. = FALSE)
-  }
-
-  # Set seed if provided
-  if (!is.null(seed)) {
-    set.seed(seed)
-  }
-
-  # Generate discrimination
-  a <- generate_discrimination(n_items, a_dist, a_mean, a_sd)
-
-  # Generate thresholds: n_items x (n_categories - 1)
-  n_thresholds <- n_categories - 1L
-  b_raw <- matrix(
-    stats::rnorm(n_items * n_thresholds, mean = b_mean, sd = b_sd),
-    nrow = n_items,
-    ncol = n_thresholds
+  # Thin wrapper over the GRM registry method (Obj 37 sub-step b refactor).
+  # See irt_params_2pl() for the parallel pattern. Generation and validation
+  # logic lives in get_model_config("GRM")$generate_default_params().
+  get_model_config("GRM")$generate_default_params(
+    n_items      = n_items,
+    n_categories = n_categories,
+    a_dist       = a_dist,
+    a_mean       = a_mean,
+    a_sd         = a_sd,
+    b_mean       = b_mean,
+    b_sd         = b_sd,
+    seed         = seed
   )
-
-  # Sort each row to ensure ordered thresholds
-  if (n_thresholds == 1L) {
-    # apply + t would flip dimensions for single-column; no sorting needed
-    b <- b_raw
-  } else {
-    b <- t(apply(b_raw, 1, sort))
-  }
-
-  list(a = a, b = b)
 }

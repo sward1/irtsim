@@ -56,6 +56,27 @@ get_model_config <- function(model) {
     ),
     response_format = "binary",
     mirt_itemtype = "Rasch",
+    generate_default_params = function(n_items,
+                                       b_dist = "normal",
+                                       b_mean = 0,
+                                       b_sd = 1,
+                                       b_range = c(-2, 2),
+                                       seed = NULL) {
+      n_items <- as.integer(n_items)
+      if (n_items < 1L) {
+        stop("`n_items` must be a positive integer. Got: ", n_items, ".",
+             call. = FALSE)
+      }
+      if (!is.null(seed)) set.seed(seed)
+
+      b <- switch(b_dist,
+        normal = stats::rnorm(n_items, mean = b_mean, sd = b_sd),
+        even   = seq(b_range[1], b_range[2], length.out = n_items),
+        stop("`b_dist` must be 'normal' or 'even'. Got: '", b_dist, "'.",
+             call. = FALSE)
+      )
+      list(b = b)
+    },
     validate_params = function(item_params, n_items) {
       if (is.null(item_params$b)) {
         stop("1PL model requires `b` in `item_params`.", call. = FALSE)
@@ -167,6 +188,32 @@ get_model_config <- function(model) {
     ),
     response_format = "binary",
     mirt_itemtype = "2PL",
+    generate_default_params = function(n_items,
+                                       a_dist = "lnorm",
+                                       a_mean = 0,
+                                       a_sd = 0.25,
+                                       b_dist = "normal",
+                                       b_mean = 0,
+                                       b_sd = 1,
+                                       b_range = c(-2, 2),
+                                       seed = NULL) {
+      n_items <- as.integer(n_items)
+      if (n_items < 1L) {
+        stop("`n_items` must be a positive integer. Got: ", n_items, ".",
+             call. = FALSE)
+      }
+      if (!is.null(seed)) set.seed(seed)
+
+      # RNG sequence MUST match legacy irt_params_2pl() exactly: a first, then b.
+      a <- generate_discrimination(n_items, a_dist, a_mean, a_sd)
+      b <- switch(b_dist,
+        normal = stats::rnorm(n_items, mean = b_mean, sd = b_sd),
+        even   = seq(b_range[1], b_range[2], length.out = n_items),
+        stop("`b_dist` must be 'normal' or 'even'. Got: '", b_dist, "'.",
+             call. = FALSE)
+      )
+      list(a = a, b = b)
+    },
     validate_params = function(item_params, n_items) {
       if (is.null(item_params$a)) {
         stop("2PL model requires `a` (discrimination) in `item_params`.",
@@ -347,6 +394,40 @@ get_model_config <- function(model) {
     ),
     response_format = "polytomous",
     mirt_itemtype = "graded",
+    generate_default_params = function(n_items,
+                                       n_categories,
+                                       a_dist = "lnorm",
+                                       a_mean = 0,
+                                       a_sd = 0.25,
+                                       b_mean = 0,
+                                       b_sd = 1,
+                                       seed = NULL) {
+      n_items <- as.integer(n_items)
+      if (n_items < 1L) {
+        stop("`n_items` must be a positive integer. Got: ", n_items, ".",
+             call. = FALSE)
+      }
+      n_categories <- as.integer(n_categories)
+      if (n_categories < 2L) {
+        stop("`n_categories` must be >= 2. Got: ", n_categories, ".",
+             call. = FALSE)
+      }
+      if (!is.null(seed)) set.seed(seed)
+
+      # RNG sequence MUST match legacy irt_params_grm() exactly: a first, then
+      # the rnorm draw for the threshold matrix, then the within-row sort.
+      a <- generate_discrimination(n_items, a_dist, a_mean, a_sd)
+
+      n_thresholds <- n_categories - 1L
+      b_raw <- matrix(
+        stats::rnorm(n_items * n_thresholds, mean = b_mean, sd = b_sd),
+        nrow = n_items,
+        ncol = n_thresholds
+      )
+      b <- if (n_thresholds == 1L) b_raw else t(apply(b_raw, 1, sort))
+
+      list(a = a, b = b)
+    },
     validate_params = function(item_params, n_items) {
       if (is.null(item_params$a)) {
         stop("GRM model requires `a` (discrimination) in `item_params`.",
