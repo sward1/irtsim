@@ -11,6 +11,7 @@ Provides a pipeline application programming interface (API) for Monte Carlo simu
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://sward1.github.io/irtsim/}
   \item \url{https://github.com/sward1/irtsim}
   \item Report bugs at \url{https://github.com/sward1/irtsim/issues}
 }
