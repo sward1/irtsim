@@ -67,13 +67,19 @@ generate_data <- function(design, n, seed = NULL, theta = NULL) {
 
 
   # --- Call mirt::simdata -----------------------------------------------------
-  dat <- mirt::simdata(
-    a = a,
-    d = d,
-    N = n,
+  # Pass guess/upper only when the model registry supplies them (3PL/4PL).
+  # 1PL/2PL/GRM omit these fields, so mirt::simdata uses its defaults
+  # (guess = 0, upper = 1) — preserving existing behavior.
+  sim_args <- list(
+    a        = a,
+    d        = d,
+    N        = n,
     itemtype = itemtype,
-    Theta = Theta
+    Theta    = Theta
   )
+  if (!is.null(mirt_params$guess)) sim_args$guess <- mirt_params$guess
+  if (!is.null(mirt_params$upper)) sim_args$upper <- mirt_params$upper
+  dat <- do.call(mirt::simdata, sim_args)
 
   # Ensure matrix output
   if (!is.matrix(dat)) {

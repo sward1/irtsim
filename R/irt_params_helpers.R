@@ -62,6 +62,80 @@ irt_params_2pl <- function(n_items,
 }
 
 
+#' Generate 3PL Item Parameters
+#'
+#' Creates a list of discrimination (`a`), difficulty (`b`), and guessing
+#' (`c`) parameters suitable for passing to [irt_design()] with
+#' `model = "3PL"`.
+#'
+#' @param n_items Positive integer. Number of items.
+#' @param a_dist Character string for the discrimination distribution.
+#'   Currently only `"lnorm"` (log-normal) is supported. Default: `"lnorm"`.
+#' @param a_mean Numeric. `meanlog` for the log-normal distribution.
+#'   Default: `0`.
+#' @param a_sd Numeric. `sdlog` for the log-normal distribution.
+#'   Default: `0.25`.
+#' @param b_dist Character string for the difficulty distribution. One of
+#'   `"normal"` or `"even"`. Default: `"normal"`.
+#' @param b_mean Numeric. Mean of the normal distribution for `b`.
+#'   Only used when `b_dist = "normal"`. Default: `0`.
+#' @param b_sd Numeric. SD of the normal distribution for `b`.
+#'   Only used when `b_dist = "normal"`. Default: `1`.
+#' @param b_range Numeric vector of length 2. Range for evenly-spaced `b`
+#'   values. Only used when `b_dist = "even"`. Default: `c(-2, 2)`.
+#' @param c_shape1 Positive numeric. First shape parameter of the Beta
+#'   distribution used to generate `c`. Default: `5`.
+#' @param c_shape2 Positive numeric. Second shape parameter. Default: `17`.
+#'   The default `Beta(5, 17)` has `E[c] ~= 0.227, SD ~= 0.087`, consistent
+#'   with typical four-option multiple-choice items.
+#' @param seed Optional integer seed for reproducibility. If `NULL`
+#'   (default), the current RNG state is used.
+#'
+#' @return A named list with elements `a`, `b`, `c`, each a numeric vector
+#'   of length `n_items`.
+#'
+#' @examples
+#' # Default 3PL parameters for 30 items
+#' params <- irt_params_3pl(n_items = 30, seed = 42)
+#'
+#' # Custom guessing distribution (e.g., 5-option items, lower chance level)
+#' params <- irt_params_3pl(
+#'   n_items = 30, c_shape1 = 4, c_shape2 = 16, seed = 42
+#' )
+#'
+#' @seealso [irt_params_2pl()], [irt_params_grm()], [irt_design()].
+#' @export
+irt_params_3pl <- function(n_items,
+                           a_dist = "lnorm",
+                           a_mean = 0,
+                           a_sd = 0.25,
+                           b_dist = "normal",
+                           b_mean = 0,
+                           b_sd = 1,
+                           b_range = c(-2, 2),
+                           c_shape1 = 5,
+                           c_shape2 = 17,
+                           seed = NULL) {
+  # Thin wrapper over the 3PL registry method (Obj 37 sub-step c). All
+  # generation and validation logic lives in
+  # get_model_config("3PL")$generate_default_params(); the wrapper exists
+  # purely as a user-facing API surface.
+  get_model_config("3PL")$generate_default_params(
+    n_items  = n_items,
+    a_dist   = a_dist,
+    a_mean   = a_mean,
+    a_sd     = a_sd,
+    b_dist   = b_dist,
+    b_mean   = b_mean,
+    b_sd     = b_sd,
+    b_range  = b_range,
+    c_shape1 = c_shape1,
+    c_shape2 = c_shape2,
+    seed     = seed
+  )
+}
+
+
 #' Generate GRM Item Parameters
 #'
 #' Creates a list of discrimination (`a`) and threshold (`b`) parameters

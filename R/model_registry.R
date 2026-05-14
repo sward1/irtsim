@@ -40,6 +40,7 @@ get_model_config <- function(model) {
   list(
     "1PL" = .model_1pl(),
     "2PL" = .model_2pl(),
+    "3PL" = .model_3pl(),
     "GRM" = .model_grm()
   )
 }
@@ -366,6 +367,290 @@ get_model_config <- function(model) {
             param       = "b",
             true_value  = true_b,
             estimate    = b_est,
+            se          = NA_real_,
+            ci_lower    = NA_real_,
+            ci_upper    = NA_real_,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+        }
+      }
+
+      result_rows <- result_rows[seq_len(row_idx)]
+      do.call(rbind, result_rows)
+    }
+  )
+}
+
+
+# =============================================================================
+# 3PL Model Configuration
+# =============================================================================
+#
+# User-facing parameter name is `c` (lower asymptote / guessing), following
+# the IRT literature (Lord 1980; Hambleton & Swaminathan 1985). mirt's
+# internal column name is `g`; the rename happens at the convert_to_mirt /
+# extract_params boundary so the user never sees `g`.
+#
+# Default Beta(c_shape1 = 5, c_shape2 = 17) gives E[c] ~= 0.227, SD ~= 0.087,
+# which mirrors typical 4-option multiple-choice MC studies.
+#
+# RNG call sequence inside generate_default_params:
+#   rlnorm (a) -> rnorm or even-seq (b) -> rbeta (c).
+# This order is locked: future refactors must keep it bit-identical for
+# seeded output.
+
+.model_3pl <- function() {
+  list(
+    param_schema = list(
+      a = "positive numeric vector of length n_items",
+      b = "numeric vector of length n_items",
+      c = "numeric vector of length n_items, values in [0, 1)"
+    ),
+    response_format = "binary",
+    mirt_itemtype = "3PL",
+    generate_default_params = function(n_items,
+                                       a_dist = "lnorm",
+                                       a_mean = 0,
+                                       a_sd = 0.25,
+                                       b_dist = "normal",
+                                       b_mean = 0,
+                                       b_sd = 1,
+                                       b_range = c(-2, 2),
+                                       c_shape1 = 5,
+                                       c_shape2 = 17,
+                                       seed = NULL) {
+      n_items <- as.integer(n_items)
+      if (n_items < 1L) {
+        stop("`n_items` must be a positive integer. Got: ", n_items, ".",
+             call. = FALSE)
+      }
+      if (!is.numeric(c_shape1) || length(c_shape1) != 1L || c_shape1 <= 0) {
+        stop("`c_shape1` must be a single positive numeric value. Got: ",
+             c_shape1, ".", call. = FALSE)
+      }
+      if (!is.numeric(c_shape2) || length(c_shape2) != 1L || c_shape2 <= 0) {
+        stop("`c_shape2` must be a single positive numeric value. Got: ",
+             c_shape2, ".", call. = FALSE)
+      }
+      if (!is.null(seed)) set.seed(seed)
+
+      # RNG sequence locked: a (rlnorm) -> b (rnorm or even) -> c (rbeta).
+      a <- generate_discrimination(n_items, a_dist, a_mean, a_sd)
+      b <- switch(b_dist,
+        normal = stats::rnorm(n_items, mean = b_mean, sd = b_sd),
+        even   = seq(b_range[1], b_range[2], length.out = n_items),
+        stop("`b_dist` must be 'normal' or 'even'. Got: '", b_dist, "'.",
+             call. = FALSE)
+      )
+      c_vec <- stats::rbeta(n_items, shape1 = c_shape1, shape2 = c_shape2)
+
+      list(a = a, b = b, c = c_vec)
+    },
+    validate_params = function(item_params, n_items) {
+      if (is.null(item_params$a)) {
+        stop("3PL model requires `a` (discrimination) in `item_params`.",
+             call. = FALSE)
+      }
+      if (is.null(item_params$b)) {
+        stop("3PL model requires `b` (difficulty) in `item_params`.",
+             call. = FALSE)
+      }
+      if (is.null(item_params$c)) {
+        stop("3PL model requires `c` (guessing) in `item_params`.",
+             call. = FALSE)
+      }
+
+      a_len <- if (is.matrix(item_params$a)) nrow(item_params$a) else length(item_params$a)
+      if (a_len != n_items) {
+        stop(
+          "Length of `item_params$a` (", a_len,
+          ") does not match `n_items` (", n_items, ").",
+          call. = FALSE
+        )
+      }
+      if (length(item_params$b) != n_items) {
+        stop(
+          "Length of `item_params$b` (", length(item_params$b),
+          ") does not match `n_items` (", n_items, ").",
+          call. = FALSE
+        )
+      }
+      if (length(item_params$c) != n_items) {
+        stop(
+          "Length of `item_params$c` (", length(item_params$c),
+          ") does not match `n_items` (", n_items, ").",
+          call. = FALSE
+        )
+      }
+
+      if (any(item_params$a <= 0)) {
+        stop("All discrimination (`a`) values must be positive.", call. = FALSE)
+      }
+      if (any(item_params$c < 0 | item_params$c >= 1)) {
+        stop("All guessing (`c`) values must be in [0, 1).", call. = FALSE)
+      }
+
+      item_params
+    },
+    build_true_params = function(design) {
+      n_items <- design$n_items
+      a <- design$item_params$a
+      b <- design$item_params$b
+      c_vec <- design$item_params$c
+
+      rows <- list()
+      rows[[1]] <- data.frame(
+        item       = seq_len(n_items),
+        param      = "a",
+        true_value = a,
+        stringsAsFactors = FALSE
+      )
+      rows[[2]] <- data.frame(
+        item       = seq_len(n_items),
+        param      = "b",
+        true_value = b,
+        stringsAsFactors = FALSE
+      )
+      rows[[3]] <- data.frame(
+        item       = seq_len(n_items),
+        param      = "c",
+        true_value = c_vec,
+        stringsAsFactors = FALSE
+      )
+
+      do.call(rbind, rows)
+    },
+    convert_to_mirt = function(design) {
+      # 3PL: d = -a * b, guess = c (rename at the mirt boundary), upper = 1.
+      a <- design$item_params$a
+      b <- design$item_params$b
+      c_vec <- design$item_params$c
+      d <- -a * b
+      itemtype <- rep("3PL", design$n_items)
+
+      list(
+        a        = a,
+        d        = d,
+        guess    = c_vec,
+        upper    = rep(1, design$n_items),
+        itemtype = itemtype
+      )
+    },
+    extract_params = function(mod, design, iteration, sample_size,
+                               true_params, true_params_lookup, se = TRUE) {
+      n_items <- design$n_items
+      coefs <- mirt::coef(mod)
+
+      result_rows <- vector("list", 3L * n_items)
+      row_idx <- 0L
+
+      for (i in seq_len(n_items)) {
+        item_name <- paste0("Item_", i)
+        item_mat <- coefs[[item_name]]
+        if (is.null(item_mat)) next
+
+        if (se) {
+          # 3PL: a1, d, g (probability-scale) -> a, b = -d/a, c = g
+          a <- extract_one_param(item_mat, "a1")
+          d <- extract_one_param(item_mat, "d")
+          b <- convert_d_to_b(a, d)
+          g <- extract_one_param(item_mat, "g")
+
+          true_a <- true_params_lookup[[paste0(i, "_a")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "a",
+            true_value  = true_a,
+            estimate    = a$est,
+            se          = a$se,
+            ci_lower    = a$ci_lower,
+            ci_upper    = a$ci_upper,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+
+          true_b <- true_params_lookup[[paste0(i, "_b")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "b",
+            true_value  = true_b,
+            estimate    = b$est,
+            se          = b$se,
+            ci_lower    = b$ci_lower,
+            ci_upper    = b$ci_upper,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+
+          true_c <- true_params_lookup[[paste0(i, "_c")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "c",
+            true_value  = true_c,
+            estimate    = g$est,
+            se          = g$se,
+            ci_lower    = g$ci_lower,
+            ci_upper    = g$ci_upper,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+        } else {
+          a_est <- item_mat["par", "a1"]
+          d_est <- item_mat["par", "d"]
+          g_est <- item_mat["par", "g"]
+          b_est <- -d_est / a_est
+
+          true_a <- true_params_lookup[[paste0(i, "_a")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "a",
+            true_value  = true_a,
+            estimate    = a_est,
+            se          = NA_real_,
+            ci_lower    = NA_real_,
+            ci_upper    = NA_real_,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+
+          true_b <- true_params_lookup[[paste0(i, "_b")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "b",
+            true_value  = true_b,
+            estimate    = b_est,
+            se          = NA_real_,
+            ci_lower    = NA_real_,
+            ci_upper    = NA_real_,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+
+          true_c <- true_params_lookup[[paste0(i, "_c")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "c",
+            true_value  = true_c,
+            estimate    = g_est,
             se          = NA_real_,
             ci_lower    = NA_real_,
             ci_upper    = NA_real_,
