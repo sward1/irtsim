@@ -265,3 +265,90 @@ irt_params_pcm <- function(n_items,
     seed            = seed
   )
 }
+
+
+#' Generate GPCM Item Parameters
+#'
+#' Creates a list of discrimination (`a`) and step (`b`) parameters
+#' suitable for passing to [irt_design()] with `model = "GPCM"`.
+#'
+#' The Generalized Partial Credit Model (Muraki, 1992) is partial-credit
+#' family — like the Partial Credit Model, step parameters within each item
+#' are NOT required to be ordered (the defining contrast with the Graded
+#' Response Model). Unlike PCM, GPCM allows per-item discrimination: `a` is
+#' a free positive vector rather than fixed at 1. See [irt_params_pcm()]
+#' for the Rasch-family alternative.
+#'
+#' @param n_items Positive integer. Number of items.
+#' @param n_categories Positive integer >= 2. Number of response categories
+#'   per item. Produces `n_categories - 1` step columns in `b`.
+#' @param a_dist Character string for the discrimination distribution.
+#'   Currently only `"lnorm"` (log-normal) is supported. Default: `"lnorm"`.
+#' @param a_mean Numeric. `meanlog` for the log-normal distribution.
+#'   Default: `0`.
+#' @param a_sd Numeric. `sdlog` for the log-normal distribution.
+#'   Default: `0.25`.
+#' @param b_dist Character string for the item-center distribution: either
+#'   `"normal"` (default) or `"even"`.
+#' @param b_mean Numeric. Mean of item centers when `b_dist = "normal"`.
+#'   Default: `0`.
+#' @param b_sd Numeric. SD of item centers when `b_dist = "normal"`.
+#'   Default: `1`.
+#' @param b_range Length-2 numeric vector giving the minimum and maximum
+#'   item-center values. Only used when `b_dist = "even"`. Default: `c(-2, 2)`.
+#' @param step_dispersion Non-negative numeric. SD of the within-item step
+#'   offsets drawn from `rnorm(0, step_dispersion)` and added to each item's
+#'   center. Default: `1.0`. `0` is allowed (all steps within an item equal
+#'   the item center — degenerate but useful for design exploration).
+#' @param seed Optional integer seed for reproducibility.
+#'
+#' @return A named list with elements:
+#'   \describe{
+#'     \item{a}{Positive numeric vector of length `n_items`.}
+#'     \item{b}{Numeric matrix with `n_items` rows and
+#'       `n_categories - 1` columns. Steps are NOT sorted within row.}
+#'   }
+#'
+#' @examples
+#' # GPCM parameters: 15 items, 4 response categories
+#' params <- irt_params_gpcm(n_items = 15, n_categories = 4, seed = 42)
+#'
+#' # Tighter within-item step spread and a wider discrimination distribution
+#' params <- irt_params_gpcm(
+#'   n_items = 15, n_categories = 4,
+#'   a_sd = 0.50, step_dispersion = 0.5, seed = 42
+#' )
+#'
+#' @seealso [irt_params_pcm()] for the Rasch-family (a fixed at 1)
+#'   alternative, [irt_params_grm()] for the ordered-threshold polytomous
+#'   model, [irt_design()] to use the generated parameters.
+#' @export
+irt_params_gpcm <- function(n_items,
+                            n_categories,
+                            a_dist = "lnorm",
+                            a_mean = 0,
+                            a_sd = 0.25,
+                            b_dist = "normal",
+                            b_mean = 0,
+                            b_sd = 1,
+                            b_range = c(-2, 2),
+                            step_dispersion = 1.0,
+                            seed = NULL) {
+  # Thin wrapper over the GPCM registry method (Obj 37 sub-step e). All
+  # generation and validation logic lives in
+  # get_model_config("GPCM")$generate_default_params(); the wrapper exists
+  # purely as a user-facing API surface.
+  get_model_config("GPCM")$generate_default_params(
+    n_items         = n_items,
+    n_categories    = n_categories,
+    a_dist          = a_dist,
+    a_mean          = a_mean,
+    a_sd            = a_sd,
+    b_dist          = b_dist,
+    b_mean          = b_mean,
+    b_sd            = b_sd,
+    b_range         = b_range,
+    step_dispersion = step_dispersion,
+    seed            = seed
+  )
+}

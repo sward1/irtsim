@@ -1,7 +1,8 @@
 # model_registry.R
 #
 # Central registry for all model-specific logic. Each model (1PL, 2PL, 3PL,
-# GRM, PCM) is defined as a named list with standardized functions and metadata.
+# GRM, PCM, GPCM) is defined as a named list with standardized functions and
+# metadata.
 #
 # This allows adding a new model with minimal changes to other files.
 
@@ -13,7 +14,7 @@
 #'
 #' Retrieves the configuration for a specified model and validates that it exists.
 #'
-#' @param model Character string: "1PL", "2PL", "3PL", "GRM", or "PCM".
+#' @param model Character string: "1PL", "2PL", "3PL", "GRM", "PCM", or "GPCM".
 #' @return A named list with model-specific functions and metadata.
 #' @keywords internal
 get_model_config <- function(model) {
@@ -42,7 +43,8 @@ get_model_config <- function(model) {
     "2PL" = .model_2pl(),
     "3PL" = .model_3pl(),
     "GRM" = .model_grm(),
-    "PCM" = .model_pcm()
+    "PCM" = .model_pcm(),
+    "GPCM" = .model_gpcm()
   )
 }
 
@@ -1070,6 +1072,268 @@ get_model_config <- function(model) {
       # exposes a1 (fixed at 1) and d1, d2, ... columns. extract_one_param
       # falls through to NA SE when CI rows are absent for the fixed a1, so
       # no special-casing is needed beyond the standard GRM-style extraction.
+      n_items <- design$n_items
+      coefs <- mirt::coef(mod)
+
+      result_rows <- vector("list", nrow(true_params))
+      row_idx <- 0L
+
+      for (i in seq_len(n_items)) {
+        item_name <- paste0("Item_", i)
+        item_mat <- coefs[[item_name]]
+        if (is.null(item_mat)) next
+
+        if (se) {
+          a <- extract_one_param(item_mat, "a1")
+
+          true_a <- true_params_lookup[[paste0(i, "_a")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "a",
+            true_value  = true_a,
+            estimate    = a$est,
+            se          = a$se,
+            ci_lower    = a$ci_lower,
+            ci_upper    = a$ci_upper,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+
+          n_thresh <- ncol(design$item_params$b)
+          for (k in seq_len(n_thresh)) {
+            d_name <- paste0("d", k)
+            if (!d_name %in% colnames(item_mat)) next
+
+            d <- extract_one_param(item_mat, d_name)
+            b <- convert_d_to_b(a, d)
+
+            true_b_k <- true_params_lookup[[paste0(i, "_b", k)]]
+            row_idx <- row_idx + 1L
+            result_rows[[row_idx]] <- data.frame(
+              iteration   = iteration,
+              sample_size = sample_size,
+              item        = i,
+              param       = paste0("b", k),
+              true_value  = true_b_k,
+              estimate    = b$est,
+              se          = b$se,
+              ci_lower    = b$ci_lower,
+              ci_upper    = b$ci_upper,
+              converged   = TRUE,
+              stringsAsFactors = FALSE
+            )
+          }
+        } else {
+          a_est <- item_mat["par", "a1"]
+
+          true_a <- true_params_lookup[[paste0(i, "_a")]]
+          row_idx <- row_idx + 1L
+          result_rows[[row_idx]] <- data.frame(
+            iteration   = iteration,
+            sample_size = sample_size,
+            item        = i,
+            param       = "a",
+            true_value  = true_a,
+            estimate    = a_est,
+            se          = NA_real_,
+            ci_lower    = NA_real_,
+            ci_upper    = NA_real_,
+            converged   = TRUE,
+            stringsAsFactors = FALSE
+          )
+
+          n_thresh <- ncol(design$item_params$b)
+          for (k in seq_len(n_thresh)) {
+            d_name <- paste0("d", k)
+            if (!d_name %in% colnames(item_mat)) next
+
+            d_est <- item_mat["par", d_name]
+            b_est <- -d_est / a_est
+
+            true_b_k <- true_params_lookup[[paste0(i, "_b", k)]]
+            row_idx <- row_idx + 1L
+            result_rows[[row_idx]] <- data.frame(
+              iteration   = iteration,
+              sample_size = sample_size,
+              item        = i,
+              param       = paste0("b", k),
+              true_value  = true_b_k,
+              estimate    = b_est,
+              se          = NA_real_,
+              ci_lower    = NA_real_,
+              ci_upper    = NA_real_,
+              converged   = TRUE,
+              stringsAsFactors = FALSE
+            )
+          }
+        }
+      }
+
+      result_rows <- result_rows[seq_len(row_idx)]
+      do.call(rbind, result_rows)
+    }
+  )
+}
+
+
+# =============================================================================
+# GPCM (Generalized Partial Credit Model) Configuration
+# =============================================================================
+# GPCM = PCM + per-item discrimination. The step matrix `b` shares PCM's
+# partial-credit semantics (steps NOT required to be ordered within row), but
+# `a` is a free positive vector rather than fixed at 1. Simulation and
+# estimation itemtypes match — convert_to_mirt() returns itemtype = "gpcm"
+# and the top-level mirt_itemtype is also "gpcm", so fit_model() and
+# mirt::simdata use the same route (no PCM-style "gpcm"/"Rasch" split).
+
+.model_gpcm <- function() {
+  list(
+    param_schema = list(
+      a = "positive numeric vector of length n_items",
+      b = "numeric matrix (n_items x n_thresholds), steps NOT required to be ordered"
+    ),
+    response_format = "polytomous",
+    mirt_itemtype = "gpcm",
+    generate_default_params = function(n_items,
+                                       n_categories,
+                                       a_dist = "lnorm",
+                                       a_mean = 0,
+                                       a_sd = 0.25,
+                                       b_dist = "normal",
+                                       b_mean = 0,
+                                       b_sd = 1,
+                                       b_range = c(-2, 2),
+                                       step_dispersion = 1.0,
+                                       seed = NULL) {
+      n_items <- as.integer(n_items)
+      if (n_items < 1L) {
+        stop("`n_items` must be a positive integer. Got: ", n_items, ".",
+             call. = FALSE)
+      }
+      n_categories <- as.integer(n_categories)
+      if (n_categories < 2L) {
+        stop("`n_categories` must be >= 2. Got: ", n_categories, ".",
+             call. = FALSE)
+      }
+      if (!is.numeric(step_dispersion) ||
+          length(step_dispersion) != 1L ||
+          step_dispersion < 0) {
+        stop("`step_dispersion` must be a single non-negative numeric value. ",
+             "Got: ", step_dispersion, ".", call. = FALSE)
+      }
+      if (!is.null(seed)) set.seed(seed)
+
+      # RNG sequence locked: discrimination first (via generate_discrimination,
+      # which calls rlnorm), then item centers, then within-item step offsets
+      # (column-major fill). GPCM does NOT sort steps within row.
+      a <- generate_discrimination(n_items, a_dist, a_mean, a_sd)
+
+      n_thresholds <- n_categories - 1L
+      b_centers <- switch(b_dist,
+        normal = stats::rnorm(n_items, mean = b_mean, sd = b_sd),
+        even   = seq(b_range[1], b_range[2], length.out = n_items),
+        stop("`b_dist` must be 'normal' or 'even'. Got: '", b_dist, "'.",
+             call. = FALSE)
+      )
+      offsets <- matrix(
+        stats::rnorm(n_items * n_thresholds, mean = 0, sd = step_dispersion),
+        nrow = n_items,
+        ncol = n_thresholds
+      )
+      # Vector recycles down rows (column-major), so each row gets its center
+      # added to every column — i.e., b[i, k] = b_centers[i] + offsets[i, k].
+      b <- b_centers + offsets
+
+      list(a = a, b = b)
+    },
+    validate_params = function(item_params, n_items) {
+      if (is.null(item_params$a)) {
+        stop("GPCM model requires `a` (discrimination) in `item_params`.",
+             call. = FALSE)
+      }
+      if (is.null(item_params$b)) {
+        stop("GPCM model requires `b` (step matrix) in `item_params`.",
+             call. = FALSE)
+      }
+      if (!is.matrix(item_params$b)) {
+        stop(
+          "For GPCM, `item_params$b` must be a matrix ",
+          "(n_items rows x n_thresholds columns).",
+          call. = FALSE
+        )
+      }
+      if (length(item_params$a) != n_items) {
+        stop(
+          "Length of `item_params$a` (", length(item_params$a),
+          ") does not match `n_items` (", n_items, ").",
+          call. = FALSE
+        )
+      }
+      if (nrow(item_params$b) != n_items) {
+        stop(
+          "Number of rows in `item_params$b` (", nrow(item_params$b),
+          ") does not match `n_items` (", n_items, ").",
+          call. = FALSE
+        )
+      }
+      # GPCM has free per-item discrimination — must be strictly positive.
+      if (any(item_params$a <= 0)) {
+        stop("All discrimination (`a`) values must be positive.", call. = FALSE)
+      }
+
+      item_params
+    },
+    build_true_params = function(design) {
+      n_items <- design$n_items
+      a <- design$item_params$a
+      b <- design$item_params$b
+
+      # GPCM: a per item (free), plus position-indexed step rows b1, b2, ...
+      # Step values are recorded in column position, NOT in sorted rank, so a
+      # disordered step matrix passes through unchanged.
+      rows <- list()
+      rows[[1]] <- data.frame(
+        item       = seq_len(n_items),
+        param      = "a",
+        true_value = a,
+        stringsAsFactors = FALSE
+      )
+      n_thresh <- ncol(b)
+      for (k in seq_len(n_thresh)) {
+        rows[[length(rows) + 1L]] <- data.frame(
+          item       = seq_len(n_items),
+          param      = paste0("b", k),
+          true_value = b[, k],
+          stringsAsFactors = FALSE
+        )
+      }
+
+      do.call(rbind, rows)
+    },
+    convert_to_mirt = function(design) {
+      # GPCM: d_k = -a * b_k. `a` recycles down the rows of `b` under R's
+      # column-major multiplication, giving d[i, k] = -a[i] * b[i, k] — the
+      # same broadcasting GRM uses. mirt::simdata accepts itemtype = "gpcm"
+      # with a per-item discrimination vector. guess / upper are NOT
+      # returned (only relevant for 3PL/4PL).
+      a <- design$item_params$a
+      b <- design$item_params$b
+      d <- -a * b
+
+      list(
+        a        = a,
+        d        = d,
+        itemtype = rep("gpcm", design$n_items)
+      )
+    },
+    extract_params = function(mod, design, iteration, sample_size,
+                               true_params, true_params_lookup, se = TRUE) {
+      # Identical row shape to GRM / PCM: one `a` row + n_thresh `b_k` rows
+      # per item. Under itemtype = "gpcm" mirt's coef matrix exposes a1 and
+      # d1, d2, ... columns, so the GRM extraction path applies verbatim.
       n_items <- design$n_items
       coefs <- mirt::coef(mod)
 

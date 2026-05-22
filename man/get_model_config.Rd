@@ -7,7 +7,7 @@
 get_model_config(model)
 }
 \arguments{
-\item{model}{Character string: "1PL", "2PL", "3PL", "GRM", or "PCM".}
+\item{model}{Character string: "1PL", "2PL", "3PL", "GRM", "PCM", or "GPCM".}
 }
 \value{
 A named list with model-specific functions and metadata.
