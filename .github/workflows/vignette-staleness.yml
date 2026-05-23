@@ -1,0 +1,85 @@
+# Vignette staleness check (Obj 42, Session 29).
+#
+# The paper-example vignettes use the R.rsp::asis precompute pattern:
+# source in vignettes-raw/X.Rmd, rendered HTML committed at vignettes/X.html
+# and dispatched via vignettes/X.html.asis. Because the HTML is committed
+# rather than knit at R CMD build time, a developer can edit the source and
+# forget to re-render, leaving the shipped vignette stale.
+#
+# This workflow catches that by comparing the last-commit-timestamp of each
+# raw source against its rendered counterpart. It uses git timestamps (not
+# file mtime) because git checkouts reset mtimes — mtime-based checks would
+# silently pass in fresh CI clones.
+#
+# The check only runs on changes that touch vignettes-raw/ or vignettes/ to
+# avoid burning CI on unrelated PRs. Live-knitr vignettes (irtsim.Rmd,
+# choosing-item-parameters.Rmd) are NOT checked here — they render at build
+# time and cannot drift from source.
+
+name: vignette-staleness
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'vignettes-raw/**'
+      - 'vignettes/**'
+  pull_request:
+    branches: [main, master]
+    paths:
+      - 'vignettes-raw/**'
+      - 'vignettes/**'
+
+jobs:
+  check-staleness:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history for git log timestamps)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare last-commit timestamps for each precomputed vignette
+        run: |
+          set -euo pipefail
+
+          stale=0
+          missing=0
+
+          for raw in vignettes-raw/*.Rmd; do
+            base="$(basename "$raw" .Rmd)"
+            html="vignettes/${base}.html"
+
+            if [ ! -f "$html" ]; then
+              echo "MISSING: ${raw} has no rendered counterpart at ${html}"
+              missing=$((missing + 1))
+              continue
+            fi
+
+            raw_ts="$(git log -1 --format=%ct -- "$raw")"
+            html_ts="$(git log -1 --format=%ct -- "$html")"
+
+            if [ -z "$raw_ts" ] || [ -z "$html_ts" ]; then
+              echo "WARNING: could not read git timestamp for ${raw} or ${html}; skipping"
+              continue
+            fi
+
+            if [ "$raw_ts" -gt "$html_ts" ]; then
+              raw_when="$(git log -1 --format=%ci -- "$raw")"
+              html_when="$(git log -1 --format=%ci -- "$html")"
+              echo "STALE: ${html} (last touched ${html_when}) is older than ${raw} (last touched ${raw_when})"
+              echo "       Re-render the vignette and commit the updated HTML."
+              stale=$((stale + 1))
+            else
+              echo "OK:    ${html} is current with ${raw}"
+            fi
+          done
+
+          if [ "$missing" -gt 0 ] || [ "$stale" -gt 0 ]; then
+            echo ""
+            echo "Vignette staleness check FAILED: ${stale} stale, ${missing} missing."
+            exit 1
+          fi
+
+          echo ""
+          echo "Vignette staleness check passed."

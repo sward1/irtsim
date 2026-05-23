@@ -377,7 +377,9 @@ build_true_params <- function(design) {
 #' or dropped entirely (e.g., discrimination when estimating 1PL from 2PL).
 #'
 #' @param design An `irt_design` object specifying the generation model.
-#' @param estimation_model Character string: "1PL", "2PL", or "GRM".
+#' @param estimation_model Character string: one of "1PL", "2PL", "3PL",
+#'   "GRM", "PCM", or "GPCM" (canonical list registered in
+#'   [get_model_config()]).
 #' @return Data frame with columns: item, param, true_value, matching the
 #'   schema of the estimation model.
 #' @keywords internal
@@ -463,7 +465,8 @@ build_na_item_results <- function(true_params, iteration, sample_size) {
 #' Wraps [mirt::mirt()] with error and convergence handling.
 #'
 #' @param data Numeric matrix of response data (may contain NAs).
-#' @param model Character string: "1PL", "2PL", or "GRM".
+#' @param model Character string: one of "1PL", "2PL", "3PL", "GRM", "PCM",
+#'   or "GPCM" (canonical list registered in [get_model_config()]).
 #' @param se Logical. Compute standard errors? Default `TRUE`.
 #' @return A list with elements `model` (fitted mirt object or NULL)
 #'   and `converged` (logical).
@@ -533,8 +536,9 @@ fit_model <- function(data, model, se = TRUE) {
 #'
 #' @param mod A fitted mirt object.
 #' @param design An `irt_design` object (for true values and model type).
-#' @param estimation_model Character string: "1PL", "2PL", or "GRM" (the
-#'   model that was fitted, which may differ from design$model).
+#' @param estimation_model Character string: one of "1PL", "2PL", "3PL",
+#'   "GRM", "PCM", or "GPCM" (the model that was fitted, which may differ
+#'   from design$model; canonical list registered in [get_model_config()]).
 #' @param iteration Integer iteration number.
 #' @param sample_size Integer sample size.
 #' @param true_params Data frame (used for schema).

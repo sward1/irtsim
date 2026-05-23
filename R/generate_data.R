@@ -67,9 +67,10 @@ generate_data <- function(design, n, seed = NULL, theta = NULL) {
 
 
   # --- Call mirt::simdata -----------------------------------------------------
-  # Pass guess/upper only when the model registry supplies them (3PL/4PL).
-  # 1PL/2PL/GRM omit these fields, so mirt::simdata uses its defaults
-  # (guess = 0, upper = 1) — preserving existing behavior.
+  # Pass guess/upper only when the model registry supplies them (currently
+  # 3PL; the contract is also ready for any future 4PL). 1PL/2PL/GRM/PCM/GPCM
+  # omit these fields, so mirt::simdata uses its defaults (guess = 0,
+  # upper = 1) — preserving existing behavior.
   sim_args <- list(
     a        = a,
     d        = d,

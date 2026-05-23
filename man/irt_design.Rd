@@ -8,7 +8,8 @@ irt_design(model, n_items, item_params, theta_dist = "normal", n_factors = 1L)
 }
 \arguments{
 \item{model}{Character string specifying the IRT model. One of
-\code{"1PL"}, \code{"2PL"}, or \code{"GRM"}.}
+\code{"1PL"}, \code{"2PL"}, \code{"3PL"}, \code{"GRM"}, \code{"PCM"}, or \code{"GPCM"}. The
+canonical list is registered in \code{\link[=get_model_config]{get_model_config()}}.}
 
 \item{n_items}{Positive integer. Number of items in the instrument.}
 
@@ -19,10 +20,22 @@ irt_design(model, n_items, item_params, theta_dist = "normal", n_factors = 1L)
 is fixed at 1 for all items and added automatically.}
 \item{2PL}{\code{a} (discrimination, positive numeric vector or matrix) and
 \code{b} (difficulty, numeric vector), each of length \code{n_items}.}
+\item{3PL}{\code{a}, \code{b}, and \code{c} (guessing parameter, numeric vector with
+values in \verb{[0, 1)}), each of length \code{n_items}.}
 \item{GRM}{\code{a} (discrimination, positive numeric vector) of length
 \code{n_items} and \code{b} (threshold matrix, \code{n_items} rows by
-\code{n_categories - 1} columns).}
-}}
+\code{n_categories - 1} columns; thresholds ordered within row).}
+\item{PCM}{\code{a} (numeric vector, all \code{1} — Rasch family) of length
+\code{n_items} and \code{b} (step matrix, \code{n_items} rows by
+\code{n_categories - 1} columns; steps NOT required to be ordered
+within row).}
+\item{GPCM}{\code{a} (positive numeric vector) of length \code{n_items} and
+\code{b} (step matrix, same shape as PCM; steps NOT required to be
+ordered within row).}
+}
+See \code{\link[=irt_params_1pl]{irt_params_1pl()}}, \code{\link[=irt_params_2pl]{irt_params_2pl()}}, \code{\link[=irt_params_3pl]{irt_params_3pl()}},
+\code{\link[=irt_params_grm]{irt_params_grm()}}, \code{\link[=irt_params_pcm]{irt_params_pcm()}}, and \code{\link[=irt_params_gpcm]{irt_params_gpcm()}} for
+helpers that generate \code{item_params} lists matching each schema.}
 
 \item{theta_dist}{Either a character string (\code{"normal"} or \code{"uniform"}) or
 a function that takes a single argument \code{n} and returns a numeric vector

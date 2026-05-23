@@ -5,7 +5,8 @@
 #' dimensionality, item parameters, and item type.
 #'
 #' @param model Character string specifying the IRT model. One of
-#'   `"1PL"`, `"2PL"`, or `"GRM"`.
+#'   `"1PL"`, `"2PL"`, `"3PL"`, `"GRM"`, `"PCM"`, or `"GPCM"`. The
+#'   canonical list is registered in [get_model_config()].
 #' @param n_items Positive integer. Number of items in the instrument.
 #' @param item_params A named list of item parameters. Contents depend on
 #'   `model`:
@@ -14,10 +15,22 @@
 #'       is fixed at 1 for all items and added automatically.}
 #'     \item{2PL}{`a` (discrimination, positive numeric vector or matrix) and
 #'       `b` (difficulty, numeric vector), each of length `n_items`.}
+#'     \item{3PL}{`a`, `b`, and `c` (guessing parameter, numeric vector with
+#'       values in `[0, 1)`), each of length `n_items`.}
 #'     \item{GRM}{`a` (discrimination, positive numeric vector) of length
 #'       `n_items` and `b` (threshold matrix, `n_items` rows by
-#'       `n_categories - 1` columns).}
+#'       `n_categories - 1` columns; thresholds ordered within row).}
+#'     \item{PCM}{`a` (numeric vector, all `1` — Rasch family) of length
+#'       `n_items` and `b` (step matrix, `n_items` rows by
+#'       `n_categories - 1` columns; steps NOT required to be ordered
+#'       within row).}
+#'     \item{GPCM}{`a` (positive numeric vector) of length `n_items` and
+#'       `b` (step matrix, same shape as PCM; steps NOT required to be
+#'       ordered within row).}
 #'   }
+#'   See [irt_params_1pl()], [irt_params_2pl()], [irt_params_3pl()],
+#'   [irt_params_grm()], [irt_params_pcm()], and [irt_params_gpcm()] for
+#'   helpers that generate `item_params` lists matching each schema.
 #' @param theta_dist Either a character string (`"normal"` or `"uniform"`) or
 #'   a function that takes a single argument `n` and returns a numeric vector
 #'   of length `n`. Defaults to `"normal"`.

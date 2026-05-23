@@ -9,7 +9,9 @@ build_true_params_for_estimation(design, estimation_model)
 \arguments{
 \item{design}{An \code{irt_design} object specifying the generation model.}
 
-\item{estimation_model}{Character string: "1PL", "2PL", or "GRM".}
+\item{estimation_model}{Character string: one of "1PL", "2PL", "3PL",
+"GRM", "PCM", or "GPCM" (canonical list registered in
+\code{\link[=get_model_config]{get_model_config()}}).}
 }
 \value{
 Data frame with columns: item, param, true_value, matching the

@@ -9,7 +9,8 @@ fit_model(data, model, se = TRUE)
 \arguments{
 \item{data}{Numeric matrix of response data (may contain NAs).}
 
-\item{model}{Character string: "1PL", "2PL", or "GRM".}
+\item{model}{Character string: one of "1PL", "2PL", "3PL", "GRM", "PCM",
+or "GPCM" (canonical list registered in \code{\link[=get_model_config]{get_model_config()}}).}
 
 \item{se}{Logical. Compute standard errors? Default \code{TRUE}.}
 }

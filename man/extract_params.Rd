@@ -20,8 +20,9 @@ extract_params(
 
 \item{design}{An \code{irt_design} object (for true values and model type).}
 
-\item{estimation_model}{Character string: "1PL", "2PL", or "GRM" (the
-model that was fitted, which may differ from design$model).}
+\item{estimation_model}{Character string: one of "1PL", "2PL", "3PL",
+"GRM", "PCM", or "GPCM" (the model that was fitted, which may differ
+from design$model; canonical list registered in \code{\link[=get_model_config]{get_model_config()}}).}
 
 \item{iteration}{Integer iteration number.}
 

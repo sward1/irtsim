@@ -39,12 +39,14 @@ missingness. Required when \code{missing} is \code{"booklet"} or
 }}
 
 \item{estimation_model}{Character string specifying the IRT model to fit.
-One of \code{"1PL"}, \code{"2PL"}, or \code{"GRM"}. If \code{NULL}
-(default), defaults to \code{design$model} (i.e., the generation model is
-also the estimation model). Set to a different model to perform
-misspecification studies (e.g., generate 2PL, estimate 1PL). Cross-fits
-are only allowed within the same response format (binary: 1PL, 2PL;
-polytomous: GRM).}
+One of \code{"1PL"}, \code{"2PL"}, \code{"3PL"}, \code{"GRM"},
+\code{"PCM"}, or \code{"GPCM"} (canonical list registered in
+\code{\link{get_model_config}}). If \code{NULL} (default), defaults to
+\code{design$model} (i.e., the generation model is also the estimation
+model). Set to a different model to perform misspecification studies
+(e.g., generate 2PL, estimate 1PL). Cross-fits are only allowed within
+the same response format (binary: 1PL, 2PL, 3PL; polytomous: GRM, PCM,
+GPCM).}
 }
 \value{
 An S3 object of class \code{irt_study} (a named list) with elements

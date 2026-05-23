@@ -1,3 +1,59 @@
+#' Generate 1PL Item Parameters
+#'
+#' Creates a list of difficulty (`b`) parameters suitable for passing to
+#' [irt_design()] with `model = "1PL"`. The 1PL model is Rasch-family:
+#' every item shares the same discrimination (fixed at `1`), so only `b`
+#' is generated here — the `a = 1` contract is applied downstream in the
+#' design's `validate_params` step.
+#'
+#' @param n_items Positive integer. Number of items.
+#' @param b_dist Character string for the difficulty distribution. One of
+#'   `"normal"` or `"even"`. Default: `"normal"`.
+#' @param b_mean Numeric. Mean of the normal distribution for `b`.
+#'   Only used when `b_dist = "normal"`. Default: `0`.
+#' @param b_sd Numeric. SD of the normal distribution for `b`.
+#'   Only used when `b_dist = "normal"`. Default: `1`.
+#' @param b_range Numeric vector of length 2. Range for evenly-spaced `b`
+#'   values. Only used when `b_dist = "even"`. Default: `c(-2, 2)`.
+#' @param seed Optional integer seed for reproducibility. If `NULL` (default),
+#'   the current RNG state is used.
+#'
+#' @return A named list with a single element `b` (numeric vector of length
+#'   `n_items`). Note: no `a` is returned — 1PL fixes discrimination at 1
+#'   downstream rather than at generation time.
+#'
+#' @examples
+#' # Default 1PL parameters for 30 items
+#' params <- irt_params_1pl(n_items = 30, seed = 42)
+#'
+#' # Evenly-spaced difficulty across a wider range
+#' params <- irt_params_1pl(n_items = 20, b_dist = "even", b_range = c(-3, 3))
+#'
+#' @seealso [irt_params_2pl()] for the free-discrimination binary alternative,
+#'   [irt_design()] to use the generated parameters.
+#' @export
+irt_params_1pl <- function(n_items,
+                           b_dist = "normal",
+                           b_mean = 0,
+                           b_sd = 1,
+                           b_range = c(-2, 2),
+                           seed = NULL) {
+  # Thin wrapper over the 1PL registry method (Obj 37 sub-step f). All
+  # generation and validation logic lives in
+  # get_model_config("1PL")$generate_default_params(); the wrapper exists
+  # purely as a user-facing API surface for symmetry with the rest of the
+  # irt_params_* family (1PL / 2PL / 3PL / GRM / PCM / GPCM).
+  get_model_config("1PL")$generate_default_params(
+    n_items = n_items,
+    b_dist  = b_dist,
+    b_mean  = b_mean,
+    b_sd    = b_sd,
+    b_range = b_range,
+    seed    = seed
+  )
+}
+
+
 #' Generate 2PL Item Parameters
 #'
 #' Creates a list of discrimination (`a`) and difficulty (`b`) parameters
