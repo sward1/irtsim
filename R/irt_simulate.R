@@ -226,7 +226,9 @@ irt_simulate <- function(study, iterations, seed, progress = TRUE,
       fit_result <- fit_model(dat, estimation_model, se = se)
 
       # 4. Extract parameters and theta
-      if (fit_result$converged) {
+      # isTRUE() guards defensively: any non-TRUE convergence flag (incl. a
+      # stray NA) routes to the non-converged branch rather than erroring.
+      if (isTRUE(fit_result$converged)) {
         item_df <- extract_params(fit_result$model, design, estimation_model,
                                    iter, n, true_params, true_params_lookup, se = se)
         if (compute_theta) {
@@ -511,8 +513,12 @@ fit_model <- function(data, model, se = TRUE) {
         )
       }
 
-      # Check convergence via mirt's internal flag
-      converged <- mirt::extract.mirt(mod, "converged")
+      # Check convergence via mirt's internal flag. extract.mirt() can return
+      # NA for harder/larger fits; isTRUE() coerces anything that isn't a
+      # confirmed TRUE (NA, NULL, length-0) to FALSE so the documented
+      # logical-scalar `converged` contract holds and an unconfirmable fit is
+      # treated as non-converged (routes to the NA-results path downstream).
+      converged <- isTRUE(mirt::extract.mirt(mod, "converged"))
 
       list(model = mod, converged = converged)
     },
@@ -568,9 +574,17 @@ extract_params <- function(mod, design, estimation_model, iteration,
 #' @return Single-row data frame with theta_results columns.
 #' @keywords internal
 extract_theta_summary <- function(mod, theta_true, iteration, sample_size) {
-  theta_hat <- as.numeric(suppressWarnings(
-    mirt::fscores(mod, method = "EAP", full.scores = TRUE)
-  ))
+  # mirt::fscores() can itself throw on certain fits (e.g. an internal
+  # `if (nc == 0)` in its EAP scorer hits NA when a category is sparsely
+  # observed — likelier at large item counts). A scoring failure must not abort
+  # the whole study: the fit converged and the item estimates are valid, so we
+  # degrade theta recovery to NA (which flows through the all-NA branch below).
+  theta_hat <- tryCatch(
+    as.numeric(suppressWarnings(
+      mirt::fscores(mod, method = "EAP", full.scores = TRUE)
+    )),
+    error = function(e) rep(NA_real_, length(theta_true))
+  )
 
   # Handle any NAs in theta estimates
   valid <- !is.na(theta_hat) & !is.na(theta_true)

@@ -362,6 +362,70 @@ test_that("non-converged iterations have NA estimates", {
   }
 })
 
+test_that("an NA convergence flag is treated as non-converged, not an error (Obj 45)", {
+  # Regression: mirt::extract.mirt(mod, "converged") can return NA for harder /
+  # larger fits (surfaced by the Obj 36 benchmark at GRM, n_items >= 60). The NA
+  # must route to the existing non-convergence path (build_na_item_results),
+  # NOT trip `if (fit_result$converged)` in irt_simulate() with
+  # "missing value where TRUE/FALSE needed". An unconfirmable fit is treated as
+  # non-converged — the safe interpretation.
+  testthat::local_mocked_bindings(
+    fit_model = function(data, model, se = TRUE) {
+      list(model = NULL, converged = NA)
+    }
+  )
+  study <- make_1pl_study(n_items = 5, sample_sizes = 100)
+
+  expect_no_error(
+    res <- irt_simulate(study, iterations = 2, seed = 42, progress = FALSE)
+  )
+  expect_false(any(res$item_results$converged))
+  expect_true(all(is.na(res$item_results$estimate)))
+  expect_false(any(res$theta_results$converged))
+})
+
+test_that("extract_theta_summary degrades to NA when mirt::fscores errors (Obj 45)", {
+  # Regression: mirt::fscores() can throw an internal error ("missing value
+  # where TRUE/FALSE needed" from `if (nc == 0)` in its EAP scorer) on certain
+  # GRM fits at larger item counts (surfaced by the Obj 36 benchmark at GRM,
+  # n_items >= 60). A theta-scoring failure must NOT crash the whole simulation:
+  # the fit converged and the item-parameter estimates are valid, so theta
+  # recovery for that iteration is recorded as NA, matching the existing
+  # all-NA-theta path.
+  testthat::local_mocked_bindings(
+    fscores = function(...) stop("missing value where TRUE/FALSE needed"),
+    .package = "mirt"
+  )
+  fake_mod <- structure(list(), class = "fake_mirt")
+
+  out <- NULL
+  expect_no_error(
+    out <- extract_theta_summary(fake_mod, theta_true = seq(-2, 2, length.out = 50),
+                                 iteration = 1L, sample_size = 50L)
+  )
+  expect_equal(nrow(out), 1L)
+  expect_true(is.na(out$theta_cor))
+  expect_true(is.na(out$theta_rmse))
+})
+
+test_that("irt_simulate survives an fscores failure mid-study (Obj 45)", {
+  # End-to-end: a converged fit whose theta scoring throws must yield valid
+  # (non-NA) item estimates plus NA theta recovery, not abort the run.
+  testthat::local_mocked_bindings(
+    fscores = function(...) stop("missing value where TRUE/FALSE needed"),
+    .package = "mirt"
+  )
+  study <- make_1pl_study(n_items = 5, sample_sizes = 100)
+
+  res <- NULL
+  expect_no_error(
+    res <- irt_simulate(study, iterations = 2, seed = 42, progress = FALSE)
+  )
+  expect_true(all(is.na(res$theta_results$theta_cor)))
+  # Item estimates are unaffected by the theta-scoring failure.
+  expect_true(any(!is.na(res$item_results$estimate)))
+})
+
 test_that("non-converged iterations are never silently dropped", {
   # Total row count must equal iterations × sample_sizes × items × params
   # regardless of convergence
