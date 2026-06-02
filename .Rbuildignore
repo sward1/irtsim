@@ -19,3 +19,4 @@
 ^\.positai$
 ^\.claude$
 ^vignettes/irtsim\.html$
+^benchmarks$
