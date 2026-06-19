@@ -1,4 +1,60 @@
-# irtsim (development version)
+# irtsim 0.2.0
+
+## New features
+
+* The `irt_params_*` helper family is now complete across all registered
+  IRT models: `irt_params_1pl()`, `irt_params_2pl()`, `irt_params_3pl()`,
+  `irt_params_grm()`, `irt_params_pcm()`, and `irt_params_gpcm()`. Each
+  helper shares the same distribution-aware signature pattern
+  (`<param>_dist`, `<param>_mean`, `<param>_sd`, `seed`) plus model-specific
+  extras (`c_mean`/`c_sd` for 3PL guessing; `n_categories` for the
+  polytomous family). All six delegate to the model registry's
+  `generate_default_params()` method, so generation defaults live next to
+  the model definitions and stay in sync automatically. `irt_params_2pl()`
+  and `irt_params_grm()` were refactored to use this shared method with no
+  change to their signatures, defaults, or return shapes.
+* `irt_design()` and `irt_simulate()` now support three-parameter logistic
+  (`model = "3PL"`), partial credit (`model = "PCM"`), and generalized
+  partial credit (`model = "GPCM"`) models, in addition to the existing
+  1PL, 2PL, and GRM. `irt_study(estimation_model = ...)` accepts the full
+  set for generation/estimation cross-fits within a response format
+  (binary: 1PL/2PL/3PL; polytomous: GRM/PCM/GPCM).
+
+## Bug fixes
+
+* `irt_simulate()` no longer crashes with `"missing value where TRUE/FALSE
+  needed"` when `mirt`'s convergence flag returns `NA` on a hard or large
+  fit. The flag is coerced to a strict logical via `isTRUE()` at the source
+  and consumer, so an unconfirmable fit routes to the existing
+  non-converged branch (records `NA` estimates for that iteration) instead
+  of aborting the whole simulation. Most often seen on GRM studies at ~60+
+  items.
+* `irt_simulate()` no longer crashes when `mirt::fscores()` throws during
+  theta scoring on GRM fits with sparsely-observed response categories
+  (likelier at large item counts). The call is now wrapped in `tryCatch()`;
+  scoring failure degrades to `NA` theta recovery for that iteration while
+  item-parameter estimates — the primary sample-size-planning output — are
+  preserved. This unblocks GRM studies at realistic operational test
+  lengths (60–200 items).
+
+## Internal / infrastructure
+
+* New CI check fails if any precomputed vignette HTML in `vignettes/` is
+  older (by last-commit timestamp) than its source in `vignettes-raw/`,
+  catching the precompute-then-commit drift that previously relied on
+  developer memory.
+* Roxygen2 docstrings for `irt_design()`, `irt_study()`, and
+  `irt_simulate()` updated to list the full registered model set (1PL, 2PL,
+  3PL, GRM, PCM, GPCM).
+* The precomputed simulation-result objects backing the paper-example
+  vignettes are no longer shipped in the installed package (the static
+  vignette HTML is self-contained), restoring a small installed size.
+* Added a scalability benchmark harness (`benchmarks/`, excluded from the
+  installed package). Findings (`benchmarks/README.md`): wall-clock scales
+  roughly as `n_items^1.7`, `mirt::mirt()` accounts for ~96% of run time,
+  and peak resident heap stays ~335–395 MB across an `n_items`
+  {30,60,100,150} x N {200,500,1000} grid — use `parallel = TRUE` for large
+  designs.
 
 # irtsim 0.1.2
 

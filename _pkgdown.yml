@@ -35,8 +35,12 @@ reference:
   - title: "Utilities"
     desc: "Helper functions for parameter generation and planning."
     contents:
+      - irt_params_1pl
       - irt_params_2pl
+      - irt_params_3pl
       - irt_params_grm
+      - irt_params_pcm
+      - irt_params_gpcm
       - irt_iterations
 
   - title: "Print Methods"
