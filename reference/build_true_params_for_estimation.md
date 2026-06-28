@@ -21,7 +21,9 @@ build_true_params_for_estimation(design, estimation_model)
 
 - estimation_model:
 
-  Character string: "1PL", "2PL", or "GRM".
+  Character string: one of "1PL", "2PL", "3PL", "GRM", "PCM", or "GPCM"
+  (canonical list registered in
+  [`get_model_config()`](https://sward1.github.io/irtsim/reference/get_model_config.md)).
 
 ## Value
 

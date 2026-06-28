@@ -7,7 +7,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">irtsim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,29 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="irtsim-development-version">irtsim (development version)<a class="anchor" aria-label="anchor" href="#irtsim-development-version"></a></h2>
+</div>
+    <div class="section level2">
+<h2 class="pkg-version" data-toc-text="0.2.0" id="irtsim-020">irtsim 0.2.0<a class="anchor" aria-label="anchor" href="#irtsim-020"></a></h2><p class="text-muted">CRAN release: 2026-06-27</p>
+<div class="section level3">
+<h3 id="new-features-0-2-0">New features<a class="anchor" aria-label="anchor" href="#new-features-0-2-0"></a></h3>
+<ul><li>The <code>irt_params_*</code> helper family is now complete across all registered IRT models: <code><a href="../reference/irt_params_1pl.html">irt_params_1pl()</a></code>, <code><a href="../reference/irt_params_2pl.html">irt_params_2pl()</a></code>, <code><a href="../reference/irt_params_3pl.html">irt_params_3pl()</a></code>, <code><a href="../reference/irt_params_grm.html">irt_params_grm()</a></code>, <code><a href="../reference/irt_params_pcm.html">irt_params_pcm()</a></code>, and <code><a href="../reference/irt_params_gpcm.html">irt_params_gpcm()</a></code>. Each helper shares the same distribution-aware signature pattern (<code>&lt;param&gt;_dist</code>, <code>&lt;param&gt;_mean</code>, <code>&lt;param&gt;_sd</code>, <code>seed</code>) plus model-specific extras (<code>c_mean</code>/<code>c_sd</code> for 3PL guessing; <code>n_categories</code> for the polytomous family). All six delegate to the model registry’s <code>generate_default_params()</code> method, so generation defaults live next to the model definitions and stay in sync automatically. <code><a href="../reference/irt_params_2pl.html">irt_params_2pl()</a></code> and <code><a href="../reference/irt_params_grm.html">irt_params_grm()</a></code> were refactored to use this shared method with no change to their signatures, defaults, or return shapes.</li>
+<li>
+<code><a href="../reference/irt_design.html">irt_design()</a></code> and <code><a href="../reference/irt_simulate.html">irt_simulate()</a></code> now support three-parameter logistic (<code>model = "3PL"</code>), partial credit (<code>model = "PCM"</code>), and generalized partial credit (<code>model = "GPCM"</code>) models, in addition to the existing 1PL, 2PL, and GRM. <code>irt_study(estimation_model = ...)</code> accepts the full set for generation/estimation cross-fits within a response format (binary: 1PL/2PL/3PL; polytomous: GRM/PCM/GPCM).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="bug-fixes-0-2-0">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-2-0"></a></h3>
+<ul><li>
+<code><a href="../reference/irt_simulate.html">irt_simulate()</a></code> no longer crashes with <code>"missing value where TRUE/FALSE needed"</code> when <code>mirt</code>’s convergence flag returns <code>NA</code> on a hard or large fit. The flag is coerced to a strict logical via <code><a href="https://rdrr.io/r/base/Logic.html" class="external-link">isTRUE()</a></code> at the source and consumer, so an unconfirmable fit routes to the existing non-converged branch (records <code>NA</code> estimates for that iteration) instead of aborting the whole simulation. Most often seen on GRM studies at ~60+ items.</li>
+<li>
+<code><a href="../reference/irt_simulate.html">irt_simulate()</a></code> no longer crashes when <code><a href="https://philchalmers.github.io/mirt/reference/fscores.html" class="external-link">mirt::fscores()</a></code> throws during theta scoring on GRM fits with sparsely-observed response categories (likelier at large item counts). The call is now wrapped in <code><a href="https://rdrr.io/r/base/conditions.html" class="external-link">tryCatch()</a></code>; scoring failure degrades to <code>NA</code> theta recovery for that iteration while item-parameter estimates — the primary sample-size-planning output — are preserved. This unblocks GRM studies at realistic operational test lengths (60–200 items).</li>
+</ul></div>
+<div class="section level3">
+<h3 id="internal--infrastructure-0-2-0">Internal / infrastructure<a class="anchor" aria-label="anchor" href="#internal--infrastructure-0-2-0"></a></h3>
+<ul><li>New CI check fails if any precomputed vignette HTML in <code>vignettes/</code> is older (by last-commit timestamp) than its source in <code>vignettes-raw/</code>, catching the precompute-then-commit drift that previously relied on developer memory.</li>
+<li>Roxygen2 docstrings for <code><a href="../reference/irt_design.html">irt_design()</a></code>, <code><a href="../reference/irt_study.html">irt_study()</a></code>, and <code><a href="../reference/irt_simulate.html">irt_simulate()</a></code> updated to list the full registered model set (1PL, 2PL, 3PL, GRM, PCM, GPCM).</li>
+<li>The precomputed simulation-result objects backing the paper-example vignettes are no longer shipped in the installed package (the static vignette HTML is self-contained), restoring a small installed size.</li>
+<li>Added a scalability benchmark harness (<code>benchmarks/</code>, excluded from the installed package). Findings (<code>benchmarks/README.md</code>): wall-clock scales roughly as <code>n_items^1.7</code>, <code><a href="https://philchalmers.github.io/mirt/reference/mirt.html" class="external-link">mirt::mirt()</a></code> accounts for ~96% of run time, and peak resident heap stays ~335–395 MB across an <code>n_items</code> {30,60,100,150} x N {200,500,1000} grid — use <code>parallel = TRUE</code> for large designs.</li>
+</ul></div>
 </div>
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="0.1.2" id="irtsim-012">irtsim 0.1.2<a class="anchor" aria-label="anchor" href="#irtsim-012"></a></h2><p class="text-muted">CRAN release: 2026-05-05</p>

@@ -10,14 +10,14 @@ Source:
 [`inst/CITATION`](https://github.com/sward1/irtsim/blob/HEAD/inst/CITATION)
 
 Ward, S. (2026). irtsim: Monte Carlo Simulation-Based Sample-Size
-Planning for Item Response Theory. R package version 0.1.2.9000.
+Planning for Item Response Theory. R package version 0.2.0.9000.
 https://github.com/sward1/irtsim
 
     @Manual{,
       title = {irtsim: Monte Carlo Simulation-Based Sample-Size Planning for Item Response Theory},
       author = {Stephen Ward},
       year = {2026},
-      note = {R package version 0.1.2.9000},
+      note = {R package version 0.2.0.9000},
       url = {https://github.com/sward1/irtsim},
     }
 

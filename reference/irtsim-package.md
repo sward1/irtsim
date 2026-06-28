@@ -8,15 +8,19 @@ Carlo simulation-based sample-size planning in item response theory
 as a three-step workflow: specify the data-generating model with
 irt_design(), add study conditions with irt_study(), and run simulations
 with irt_simulate(). Supports one-parameter logistic (1PL),
-two-parameter logistic (2PL), and graded response models with
-missing-completely-at-random (MCAR), missing-at-random (MAR), booklet,
-and linking missingness mechanisms. Results include mean squared error
-(MSE), bias, root mean squared error (RMSE), standard error (SE), and
-coverage criteria with summary and plot methods.
+two-parameter logistic (2PL), three-parameter logistic (3PL), graded
+response (GRM), partial credit (PCM), and generalized partial credit
+(GPCM) models with missing-completely-at-random (MCAR),
+missing-at-random (MAR), booklet, and linking missingness mechanisms.
+Results include mean squared error (MSE), bias, root mean squared error
+(RMSE), standard error (SE), and coverage criteria with summary and plot
+methods.
 
 ## See also
 
 Useful links:
+
+- <https://sward1.github.io/irtsim/>
 
 - <https://github.com/sward1/irtsim>
 

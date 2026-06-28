@@ -51,7 +51,7 @@ print(results)
 #>   Sample sizes:  200, 500 
 #>   Iterations:    10 
 #>   Convergence:  20/20 (100%)
-#>   Elapsed:       2.4 s
+#>   Elapsed:       2.3 s
 #>   Seed:          42 
 # }
 ```

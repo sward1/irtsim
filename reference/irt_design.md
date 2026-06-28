@@ -14,8 +14,10 @@ irt_design(model, n_items, item_params, theta_dist = "normal", n_factors = 1L)
 
 - model:
 
-  Character string specifying the IRT model. One of `"1PL"`, `"2PL"`, or
-  `"GRM"`.
+  Character string specifying the IRT model. One of `"1PL"`, `"2PL"`,
+  `"3PL"`, `"GRM"`, `"PCM"`, or `"GPCM"`. The canonical list is
+  registered in
+  [`get_model_config()`](https://sward1.github.io/irtsim/reference/get_model_config.md).
 
 - n_items:
 
@@ -35,11 +37,38 @@ irt_design(model, n_items, item_params, theta_dist = "normal", n_factors = 1L)
   :   `a` (discrimination, positive numeric vector or matrix) and `b`
       (difficulty, numeric vector), each of length `n_items`.
 
+  3PL
+
+  :   `a`, `b`, and `c` (guessing parameter, numeric vector with values
+      in `[0, 1)`), each of length `n_items`.
+
   GRM
 
   :   `a` (discrimination, positive numeric vector) of length `n_items`
       and `b` (threshold matrix, `n_items` rows by `n_categories - 1`
-      columns).
+      columns; thresholds ordered within row).
+
+  PCM
+
+  :   `a` (numeric vector, all `1` — Rasch family) of length `n_items`
+      and `b` (step matrix, `n_items` rows by `n_categories - 1`
+      columns; steps NOT required to be ordered within row).
+
+  GPCM
+
+  :   `a` (positive numeric vector) of length `n_items` and `b` (step
+      matrix, same shape as PCM; steps NOT required to be ordered within
+      row).
+
+  See
+  [`irt_params_1pl()`](https://sward1.github.io/irtsim/reference/irt_params_1pl.md),
+  [`irt_params_2pl()`](https://sward1.github.io/irtsim/reference/irt_params_2pl.md),
+  [`irt_params_3pl()`](https://sward1.github.io/irtsim/reference/irt_params_3pl.md),
+  [`irt_params_grm()`](https://sward1.github.io/irtsim/reference/irt_params_grm.md),
+  [`irt_params_pcm()`](https://sward1.github.io/irtsim/reference/irt_params_pcm.md),
+  and
+  [`irt_params_gpcm()`](https://sward1.github.io/irtsim/reference/irt_params_gpcm.md)
+  for helpers that generate `item_params` lists matching each schema.
 
 - theta_dist:
 

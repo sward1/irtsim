@@ -59,11 +59,14 @@ irt_study(
 - estimation_model:
 
   Character string specifying the IRT model to fit. One of `"1PL"`,
-  `"2PL"`, or `"GRM"`. If `NULL` (default), defaults to `design$model`
-  (i.e., the generation model is also the estimation model). Set to a
-  different model to perform misspecification studies (e.g., generate
-  2PL, estimate 1PL). Cross-fits are only allowed within the same
-  response format (binary: 1PL, 2PL; polytomous: GRM).
+  `"2PL"`, `"3PL"`, `"GRM"`, `"PCM"`, or `"GPCM"` (canonical list
+  registered in
+  [`get_model_config`](https://sward1.github.io/irtsim/reference/get_model_config.md)).
+  If `NULL` (default), defaults to `design$model` (i.e., the generation
+  model is also the estimation model). Set to a different model to
+  perform misspecification studies (e.g., generate 2PL, estimate 1PL).
+  Cross-fits are only allowed within the same response format (binary:
+  1PL, 2PL, 3PL; polytomous: GRM, PCM, GPCM).
 
 ## Value
 

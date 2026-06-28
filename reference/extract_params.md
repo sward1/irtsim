@@ -30,8 +30,10 @@ extract_params(
 
 - estimation_model:
 
-  Character string: "1PL", "2PL", or "GRM" (the model that was fitted,
-  which may differ from design\$model).
+  Character string: one of "1PL", "2PL", "3PL", "GRM", "PCM", or "GPCM"
+  (the model that was fitted, which may differ from design\$model;
+  canonical list registered in
+  [`get_model_config()`](https://sward1.github.io/irtsim/reference/get_model_config.md)).
 
 - iteration:
 

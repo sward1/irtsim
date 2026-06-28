@@ -11,7 +11,7 @@ dimensionality, item parameters, and item type."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">irtsim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -60,7 +60,8 @@ dimensionality, item parameters, and item type.</p>
 
 <dl><dt id="arg-model">model<a class="anchor" aria-label="anchor" href="#arg-model"></a></dt>
 <dd><p>Character string specifying the IRT model. One of
-<code>"1PL"</code>, <code>"2PL"</code>, or <code>"GRM"</code>.</p></dd>
+<code>"1PL"</code>, <code>"2PL"</code>, <code>"3PL"</code>, <code>"GRM"</code>, <code>"PCM"</code>, or <code>"GPCM"</code>. The
+canonical list is registered in <code><a href="get_model_config.html">get_model_config()</a></code>.</p></dd>
 
 
 <dt id="arg-n-items">n_items<a class="anchor" aria-label="anchor" href="#arg-n-items"></a></dt>
@@ -77,13 +78,30 @@ is fixed at 1 for all items and added automatically.</p></dd>
 <dd><p><code>a</code> (discrimination, positive numeric vector or matrix) and
 <code>b</code> (difficulty, numeric vector), each of length <code>n_items</code>.</p></dd>
 
+<dt>3PL</dt>
+<dd><p><code>a</code>, <code>b</code>, and <code>c</code> (guessing parameter, numeric vector with
+values in <code>[0, 1)</code>), each of length <code>n_items</code>.</p></dd>
+
 <dt>GRM</dt>
 <dd><p><code>a</code> (discrimination, positive numeric vector) of length
 <code>n_items</code> and <code>b</code> (threshold matrix, <code>n_items</code> rows by
-<code>n_categories - 1</code> columns).</p></dd>
+<code>n_categories - 1</code> columns; thresholds ordered within row).</p></dd>
+
+<dt>PCM</dt>
+<dd><p><code>a</code> (numeric vector, all <code>1</code> — Rasch family) of length
+<code>n_items</code> and <code>b</code> (step matrix, <code>n_items</code> rows by
+<code>n_categories - 1</code> columns; steps NOT required to be ordered
+within row).</p></dd>
+
+<dt>GPCM</dt>
+<dd><p><code>a</code> (positive numeric vector) of length <code>n_items</code> and
+<code>b</code> (step matrix, same shape as PCM; steps NOT required to be
+ordered within row).</p></dd>
 
 
-</dl></dd>
+</dl><p>See <code><a href="irt_params_1pl.html">irt_params_1pl()</a></code>, <code><a href="irt_params_2pl.html">irt_params_2pl()</a></code>, <code><a href="irt_params_3pl.html">irt_params_3pl()</a></code>,
+<code><a href="irt_params_grm.html">irt_params_grm()</a></code>, <code><a href="irt_params_pcm.html">irt_params_pcm()</a></code>, and <code><a href="irt_params_gpcm.html">irt_params_gpcm()</a></code> for
+helpers that generate <code>item_params</code> lists matching each schema.</p></dd>
 
 
 <dt id="arg-theta-dist">theta_dist<a class="anchor" aria-label="anchor" href="#arg-theta-dist"></a></dt>

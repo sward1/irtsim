@@ -30,10 +30,18 @@ results.
 
 Helper functions for parameter generation and planning.
 
+- [`irt_params_1pl()`](https://sward1.github.io/irtsim/reference/irt_params_1pl.md)
+  : Generate 1PL Item Parameters
 - [`irt_params_2pl()`](https://sward1.github.io/irtsim/reference/irt_params_2pl.md)
   : Generate 2PL Item Parameters
+- [`irt_params_3pl()`](https://sward1.github.io/irtsim/reference/irt_params_3pl.md)
+  : Generate 3PL Item Parameters
 - [`irt_params_grm()`](https://sward1.github.io/irtsim/reference/irt_params_grm.md)
   : Generate GRM Item Parameters
+- [`irt_params_pcm()`](https://sward1.github.io/irtsim/reference/irt_params_pcm.md)
+  : Generate PCM Item Parameters
+- [`irt_params_gpcm()`](https://sward1.github.io/irtsim/reference/irt_params_gpcm.md)
+  : Generate GPCM Item Parameters
 - [`irt_iterations()`](https://sward1.github.io/irtsim/reference/irt_iterations.md)
   : Compute Required Monte Carlo Replications
 

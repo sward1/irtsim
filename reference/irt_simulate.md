@@ -181,7 +181,10 @@ design <- irt_design(
 )
 study <- irt_study(design, sample_sizes = c(200, 500))
 results <- irt_simulate(study, iterations = 10, seed = 42)
+#> Iteration 4/10
 #> Iteration 5/10
+#> Iteration 7/10
+#> Iteration 8/10
 #> Iteration 9/10
 #> Iteration 10/10
 #> 

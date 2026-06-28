@@ -13,7 +13,7 @@ get_model_config(model)
 
 - model:
 
-  Character string: "1PL", "2PL", or "GRM".
+  Character string: "1PL", "2PL", "3PL", "GRM", "PCM", or "GPCM".
 
 ## Value
 

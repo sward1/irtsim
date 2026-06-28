@@ -11,7 +11,7 @@ and missing data mechanism."></head><body>
 
     <a class="navbar-brand me-2" href="../index.html">irtsim</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.2.9000</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.2.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -104,12 +104,14 @@ missingness. Required when <code>missing</code> is <code>"booklet"</code> or
 
 <dt id="arg-estimation-model">estimation_model<a class="anchor" aria-label="anchor" href="#arg-estimation-model"></a></dt>
 <dd><p>Character string specifying the IRT model to fit.
-One of <code>"1PL"</code>, <code>"2PL"</code>, or <code>"GRM"</code>. If <code>NULL</code>
-(default), defaults to <code>design$model</code> (i.e., the generation model is
-also the estimation model). Set to a different model to perform
-misspecification studies (e.g., generate 2PL, estimate 1PL). Cross-fits
-are only allowed within the same response format (binary: 1PL, 2PL;
-polytomous: GRM).</p></dd>
+One of <code>"1PL"</code>, <code>"2PL"</code>, <code>"3PL"</code>, <code>"GRM"</code>,
+<code>"PCM"</code>, or <code>"GPCM"</code> (canonical list registered in
+<code><a href="get_model_config.html">get_model_config</a></code>). If <code>NULL</code> (default), defaults to
+<code>design$model</code> (i.e., the generation model is also the estimation
+model). Set to a different model to perform misspecification studies
+(e.g., generate 2PL, estimate 1PL). Cross-fits are only allowed within
+the same response format (binary: 1PL, 2PL, 3PL; polytomous: GRM, PCM,
+GPCM).</p></dd>
 
 </dl></div>
     <div class="section level2">
