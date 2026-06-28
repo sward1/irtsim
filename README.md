@@ -31,7 +31,8 @@ recommended_n(summary(results), criterion = "rmse", threshold = 0.20)
 
 ## What it supports
 
-- **Models:** 1PL, 2PL, graded response model (GRM)
+- **Models:** 1PL, 2PL, 3PL, graded response model (GRM), partial credit model (PCM), generalized partial credit model (GPCM)
+- **Item parameters:** generate defaults with the `irt_params_*` helper family (`irt_params_1pl()`, `_2pl()`, `_3pl()`, `_grm()`, `_pcm()`, `_gpcm()`), or supply your own
 - **Missingness:** MCAR, MAR, booklet designs, linking designs
 - **Criteria:** MSE, bias, RMSE, SE, coverage, Monte Carlo SE, plus user-defined via `criterion_fn`
 - **Misspecification:** generate with one model, fit with another
